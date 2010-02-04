@@ -7,11 +7,15 @@ function val = smcIPS12010GPIB(ico, val, rate)
 %               EOIMode = 'off'
 %               EOSCharCode = 'CR'
 %               EOSMode = 'read'
+% 1/18/2010: modified to close and open magnet if behavior is sluggish
+%           currently uses tic/toc instead of cputime because of bad
+%           behavior of cputime on MX400 computer.
+
+tic
 
 
 
 global smdata;
-IPSaddress = 25; % for He4 station
 
 if ico(3)==1
     rateperminute = rate*60;
@@ -24,6 +28,8 @@ end
 %Might need in setup:
 %channel 1: FIELD
 mag = smdata.inst(ico(1)).data.inst;
+
+
 
 switch ico(2) % channel
 
@@ -57,7 +63,6 @@ switch ico(2) % channel
                         curr = fscanf(mag, '%*c%f');
                     end
                     persistentsetpoint = curr;
-                    val;
                     
                     if curr ~= val %only go through trouble if we're not at the target field
                         % get out of persistent mode [code from magpersistoff]
@@ -106,7 +111,7 @@ switch ico(2) % channel
                         fprintf(mag, '%s\r', 'A2'); fscanf(mag);  % set leads to zero
                     end
                         
-                    val = 0;                   
+                    val = 0;                 
                     
                 else % magnet not persistent
 
@@ -144,7 +149,11 @@ switch ico(2) % channel
 
 
                     val = abs(val-curr)/abs(rate);
-                    
+                    elapsedtime=toc;
+                    if elapsedtime>2
+                        fclose(mag);
+                        fopen(mag);
+                    end
                 end
                 
             case 0 % read the current field value
@@ -159,6 +168,13 @@ switch ico(2) % channel
                     end
                     val = fscanf(mag, '%*c%f');
                  end
+                 
+
+                 elapsedtime=toc;
+                if elapsedtime>2
+                    fclose(mag);
+                    fopen(mag);
+                end
                 
             otherwise
                 error('Operation not supported');
@@ -181,11 +197,21 @@ switch ico(2) % channel
                 fscanf(mag);
                                 
                 val = abs(val-curr)/abs(rate);
+                    elapsedtime=toc;
+                    if elapsedtime>2
+                        fclose(mag);
+                        fopen(mag);
+                    end
 
             case 0
                 % read the current field value
                 fprintf(mag, '%s\r', 'R8');
                 val = fscanf(mag, '%*c%f');
+                elapsedtime=toc;
+                if elapsedtime>2
+                    fclose(mag);
+                    fopen(mag);
+                end
                 
             otherwise
                 error('Operation not supported');
