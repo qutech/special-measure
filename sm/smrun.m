@@ -60,7 +60,7 @@ end
 
  % handle setting up self-ramping trigger for inner loop if none is
  % provided
-if scan.loops(1).ramptime<0 && (~isfield(scan.loops(1),'trigfn') || ...
+if ~isempty(scan.loops(1).ramptime) && scan.loops(1).ramptime<0 && (~isfield(scan.loops(1),'trigfn') || ...
                                     isempty(scan.loops(1).trigfn) || ...
                                     (isfield(scan.loops(1).trigfn,'autoset') && scan.loops(1).trigfn.autoset))
     scan.loops(1).trigfn.fn=@smatrigfn;
@@ -118,21 +118,21 @@ for i=1:length(scandef)
             scandef(i).trafofn{j}=@(x, y) A*x(i)+B;
         end
     end
-% This code is bad for several reasons:
-% - identity trafofn's (= []) would be a much better default, since otherwise one might end
-% up using a nontrivial transformation for all channels.
-% - trafofn's or setchans may not exist -> error
-% - it is actually be meaningful to have missing trafofns, for example if
-%   a single trafofn takes care of all channels. 
-%   If this kind of default is needed, there needs to be a different way to specify a "do nothing" function.
-%     if length(scandef(i).setchan)>length(scandef(i).trafofn)
-%         for j=length(scandef(i).trafofn)+1:length(scandef(i).setchan)
-%             scandef(i).trafofn{j}=scandef(i).trafofn{1};
-%         end
-%     end
+    if 0 && isfield(scandef(i),'trafofn') && ~isempty(scandef(i).trafofn);
+         for j=length(scandef(i).trafofn)+1:length(scandef(i).setchan)
+             %scandef(i).trafofn{j}=scandef(i).trafofn{1};
+             scandef(i).trafofn{j} = []; % cell array mau not always work
+             % identity trafofn's (= []) are a much better default, since otherwise one might 
+             % end up with nontricvial functions. 
+         end
+     end
 end
-
-
+% The intended default of trafofns brings two further issues:
+% - there migh be problems due to two possible trafofn formats (with and without arguments)
+% - it is actually be meaningful to have missing trafofns, for example if
+%   the first one deals with all channels and no further operations are needed.
+%   If this kind of default is needed, there needs to be a different way to specify a "do nothing" function.
+% I've thus tentatively disabled the change.
 
 if ~isfield(scandef, 'npoints')
     [scandef.npoints] = deal([]);
