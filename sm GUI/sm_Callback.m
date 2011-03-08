@@ -1,4 +1,20 @@
 function sm_Callback(what,arg)
+% Copyright 2011 Hendrik Bluhm, Vivek Venkatachalam
+% This file is part of Special Measure.
+% 
+%     Special Measure is free software: you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation, either version 3 of the License, or
+%     (at your option) any later version.
+% 
+%     Special Measure is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+% 
+%     You should have received a copy of the GNU General Public License
+%     along with Special Measure.  If not, see
+%     <http://www.gnu.org/licenses/>.
     switch nargin
         case 1
             eval(what);
@@ -161,7 +177,7 @@ function ScansKey(eventdata)
                 temp=smaux.scans{queue_index-1};
                 smaux.scans{queue_index-1}=smaux.scans{queue_index};
                 smaux.scans{queue_index}=temp;
-                set(smaux.sm.queue_lbh,'Value',queue_index-1);
+                set(smaux.sm.scans_lbh,'Value',queue_index-1);
             end
         case 'downarrow'
             if ~isempty(mod)
@@ -176,7 +192,7 @@ function ScansKey(eventdata)
                 temp=smaux.scans{queue_index+1};
                 smaux.scans{queue_index+1}=smaux.scans{queue_index};
                 smaux.scans{queue_index}=temp;
-                set(smaux.sm.queue_lbh,'Value',queue_index+1);
+                set(smaux.sm.scans_lbh,'Value',queue_index+1);
             end
     end
     UpdateToGUI;
@@ -336,7 +352,8 @@ function Run
                 runstring=sprintf('%03u',smaux.run);
                 datasaveFile = fullfile(smaux.datadir,[scan.name '_' runstring '.mat']);
             end
-
+            
+            scan = UpdateConstants(scan);
             smrun(scan,datasaveFile);
             
             %save to powerpoint
@@ -370,6 +387,30 @@ function Eval
     set(smaux.sm.console_eth,'String','');
     for i=1:size(string,1)
         evalin('base',string(i,:));
+    end
+end
+
+function scan = UpdateConstants(scan)
+    global smaux smscan;
+
+    if nargin==0
+        scan = smscan;
+    end
+    
+    
+    allchans = {scan.consts.setchan};
+    setchans = {};
+    setvals = [];
+    for i=1:length(scan.consts)
+        if scan.consts(i).set
+            setchans{end+1}=scan.consts(i).setchan;
+            setvals(end+1)=scan.consts(i).val;
+        end
+    end
+    smset(setchans, setvals);
+    newvals = cell2mat(smget(allchans));
+    for i=1:length(scan.consts)
+        scan.consts(i).val=newvals(i);
     end
 end
 
