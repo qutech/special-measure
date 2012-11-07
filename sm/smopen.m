@@ -16,6 +16,23 @@ for i = inst
             fopen(smdata.inst(i).data.inst);
         end
     end
+    
+    % Operation 6 to initialize device
+    if isfield(smdata.inst(i), 'cntrlfn')
+        if ~isempty(smdata.inst(i).cntrlfn)
+            try
+                smdata.inst(i).cntrlfn( [inst 0 6], 0, 0);
+            catch err
+                if strcmp (err.message, 'Operation not supported!')
+                    warning (['Instrument ' smdata.inst(i).device ...
+                        ' does not support operation 6 for initialization!'...
+                        ]);
+                else
+                    rethrow(err);
+                end
+            end
+        end
+    end
 end
     
     
