@@ -499,7 +499,7 @@ for i = 1:totpoints
 
     xt = x;  
     for k = 1:length(scan.trafofn)
-        xt = trafocall(scan.trafofn(k), xt);
+        xt = globaltrafocall(scan.trafofn(k), xt);
     end
 
     for j = fliplr(loops(~isdummy(loops) | count(loops)==1))
@@ -524,7 +524,7 @@ for i = 1:totpoints
                 x2(j) = scandef(j).rng(end);
                 %x2 = fliplr(x2);
                 for k = 1:length(scan.trafofn)
-                    x2 = trafocall(scan.trafofn(k), x2);
+                    x2 = globaltrafocall(scan.trafofn(k), x2);
                 end
 
                 val2 = trafocall(scandef(j).trafofn, x2, smdata.chanvals);
@@ -705,6 +705,8 @@ else
 end
 end
 
+% this trafocall does not work in GLOBAL trafos where length(fn) is always
+% equal to one
 function v = trafocall(fn, varargin)   
 v = zeros(1, length(fn));
 if iscell(fn)
@@ -721,5 +723,22 @@ else
         end
         v(i) = fn(i).fn(varargin{:}, fn(i).args{:});
     end
+end
+end
+
+% made this more static, since loop variables 'x' are always passed
+% global transformations have to return length(x) values
+function v = globaltrafocall(fn, x, varargin)   
+% v = zeros(1, length(x));
+if iscell(fn) % not sure when one would need this
+    if ischar(fn)
+        fn = str2func(fn);
+    end
+    v = fn(x, varargin{:});
+else
+    if ischar(fn.fn)
+        fn.fn = str2func(fn.fn);
+    end
+    v = fn.fn(x, varargin{:}, fn.args{:});
 end
 end
