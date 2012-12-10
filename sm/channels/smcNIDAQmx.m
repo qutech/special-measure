@@ -4,29 +4,33 @@ global smdata
 wrapper = @(varargin) varargin;
 % TODO cleanupfn which removes the channels after a measurement
 
-% workaround; TODO: it might be better to write COLLCHANS to smdata.inst in
-% smget and call cntrlfn with ico(2)=0
+% workaround for now
+COLLCHANS = smdata.inst(ico(1)).type == 2;
 if length(ico) > 3
-    COLLCHANS = ico(2:end-1);
-    ico(2) = 0;
-    ico(3) = ico(end);
+    COLLCHANS  = ico(2:end-1);
+    ico(2)     = 0;
+    ico(3)     = ico(end);
     ico(4:end) = [];
-else
-    COLLCHANS = ico(2);
+    rate       = rate ( find (abs(rate) == max (abs (rate)), 1) );
 end
 
 switch ico(3)
     case 0 %Read
-        ch = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
-        %buffered readout
+        ch       = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
+        chanlist = wrapper (smdata.inst(ico(1)).data.input.Channels.ID);
+        ind      = strcmp (ch, chanlist);
+        
         if regexp (ch, '^ai([0-9]|([1-2][0-9])|(3[01]))$', 'ONCE')
-            smdata.inst(ico(1)).data.input.wait();
-            if smdata.inst(ico(1)).data.input.IsDone
-                chanlist = wrapper (smdata.inst(ico(1)).data.input.Channels.ID);
-                ind = strcmp (ch, chanlist);
-                val = smdata.inst(ico(1)).data.buf(:, ind);
-            else
-                error('Wait for DataAvailable failed!')
+            if smdata.inst(ico(1)).datadim(ico(2), 1) > 1 %buffered readout
+                smdata.inst(ico(1)).data.input.wait();
+                if smdata.inst(ico(1)).data.input.IsDone
+                    val = smdata.inst(ico(1)).data.buf(:, ind);
+                else
+                    error('Wait for DataAvailable failed!')
+                end
+            else %just read current value
+                val = smdata.inst(ico(1)).data.input.inputSingleScan();
+                val = val(ind);
             end
         elseif regexp (ch, '^ao[0123]$', 'ONCE')
             chanlist = wrapper (smdata.inst(ico(1)).data.output.Channels.ID);
@@ -64,6 +68,11 @@ switch ico(3)
         
         smdata.inst(ico(1)).data.output.wait; %safety wait
         
+        % in case you just want to step
+        if nargin < 3
+            rate = Inf;
+        end
+        
         if rate > 0
             smdata.inst(ico(1)).data.output.queueOutputData (queue);
             smdata.inst(ico(1)).data.output.startBackground;
@@ -84,22 +93,20 @@ switch ico(3)
             error('Cannot ramp at zero ramprate!')
         end
         
-    case 3 %Trigger
+    case 3 %Trigger, has to be 'collectivelized' as well
         ch = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
         if regexp (ch, '^ai([0-9]|([1-2][0-9])|(3[01]))$', 'ONCE')
-            %Create listener for acquisition
-            smdata.inst(ico(1)).data.lh = ...
-                smdata.inst(ico(1)).data.input.addlistener(...
-                    'DataAvailable',...
-                    @(src, event) outputData(ico(1), event.Data)...
-                    );
-            %Start background job
-            smdata.inst(ico(1)).data.input.startBackground;
+            if ~smdata.inst(ico(1)).data.input.IsRunning
+                %Start background job
+                smdata.inst(ico(1)).data.input.startBackground;
+            end
         elseif regexp (ch, '^ao[0123]$', 'ONCE')
-            %Start background job
-            smdata.inst(ico(1)).data.output.startBackground;
-            smdata.inst(ico(1)).data.currentOutput = ...
-                smdata.inst(ico(1)).data.currentlyQueuedOutput;
+            if ~smdata.inst(ico(1)).data.output.IsRunning
+                %Start background job
+                smdata.inst(ico(1)).data.output.startBackground;
+                smdata.inst(ico(1)).data.currentOutput = ...
+                    smdata.inst(ico(1)).data.currentlyQueuedOutput;
+            end
         else
             error('No trigger available for selected channel!')
         end
@@ -123,14 +130,24 @@ switch ico(3)
         end
         
         rateLimit = smdata.inst(ico(1)).data.input.RateLimit;
-        smdata.inst(ico(1)).data.input.Rate =  min (rateLimit(2),... 
+        smdata.inst(ico(1)).data.input.Rate = min (rateLimit(2),... 
             max (rate, rateLimit(1)) );
         
-        smdata.inst(1).data.input.NumberOfScans = val;
-        smdata.inst(ico(1)).data.input.NotifyWhenDataAvailableExceeds = ...
-            val;
+        if val > 1
+            smdata.inst(1).data.input.NumberOfScans = val;
+            smdata.inst(ico(1)).data.input.NotifyWhenDataAvailableExceeds = ...
+                val;
         
-        smdata.inst(ico(1)).datadim = val;
+            %Create listener for acquisition
+            smdata.inst(ico(1)).data.lh = ...
+                smdata.inst(ico(1)).data.input.addlistener(...
+                    'DataAvailable',...
+                    @(src, event) outputData(ico(1), event.Data)...
+                    );
+        end
+        
+        smdata.inst(ico(1)).datadim(ico(2), 1) = val;
+        %fprintf('CHECK!\n')
         
     case 6 %Initialize card
         %TODO: Needs to be improved, if more than one NI daq-device is installed
