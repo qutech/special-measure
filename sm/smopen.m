@@ -23,7 +23,7 @@ for i = inst
             try
                 smdata.inst(i).cntrlfn( [inst 0 6], 0, 0);
             catch err
-                if strcmp (err.message, 'Operation not supported')
+                if strfind (upper (err.message), 'OPERATION NOT SUPPORTED')
                     warning (['Instrument ' smdata.inst(i).device ...
                         ' does not support operation 6 for initialization!'...
                         ]);
