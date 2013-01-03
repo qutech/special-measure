@@ -17,83 +17,108 @@ end
 switch ico(3)
     case 0 %Read
         ch       = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
-        chanlist = wrapper (smdata.inst(ico(1)).data.input.Channels.ID);
-        ind      = strcmp (ch, chanlist);
         
-        if regexp (ch, '^ai([0-9]|([1-2][0-9])|(3[01]))$', 'ONCE')
-            if smdata.inst(ico(1)).datadim(ico(2), 1) > 1 %buffered readout
-                smdata.inst(ico(1)).data.input.wait();
-                if smdata.inst(ico(1)).data.input.IsDone
-                    val = smdata.inst(ico(1)).data.buf(:, ind);
-                else
-                    error('Wait for DataAvailable failed!')
+        switch ico(2)
+            case 1:32 %analog inputs
+                chanlist = wrapper (smdata.inst(ico(1)).data.input.Channels.ID);
+                ind      = strcmp (ch, chanlist);
+                if smdata.inst(ico(1)).datadim(ico(2), 1) > 1 %buffered readout
+                    smdata.inst(ico(1)).data.input.wait();
+                    if smdata.inst(ico(1)).data.input.IsDone
+                        val = smdata.inst(ico(1)).data.buf(:, ind);
+                    else
+                        error('Wait for DataAvailable failed!')
+                    end
+                else %just read current value
+                    val = smdata.inst(ico(1)).data.input.inputSingleScan();
+                    val = val(ind);
                 end
-            else %just read current value
-                val = smdata.inst(ico(1)).data.input.inputSingleScan();
-                val = val(ind);
-            end
-        elseif regexp (ch, '^ao[0123]$', 'ONCE')
-            chanlist = wrapper (smdata.inst(ico(1)).data.output.Channels.ID);
-            ind = strcmp (ch, chanlist);
-            val = smdata.inst(ico(1)).data.currentOutput(ind);
-        else
-            error('Channel not (yet?) configured for readout!')
+                
+            case 33:36 %analog outputs
+                chanlist = wrapper (smdata.inst(ico(1)).data.output.Channels.ID);
+                ind = strcmp (ch, chanlist);
+                val = smdata.inst(ico(1)).data.currentOutput(ind);
+            
+            case mat2cell(37:41) %pfi0-pfi4
+                chanlist = wrapper (smdata.inst(ico(1)).data.digital.Channels.ID);
+                ind = strcmp (ch, chanlist);
+                val = smdata.inst(ico(1)).data.currentDigitalOutput(ind);
+                
+            otherwise
+                error('Channel not (yet?) configured for readout!')            
         end
     
     case 1 %Set/Ramp
-        % if not all outputs are set, just set specified outputs and leave
-        % the rest as is
-        chans = smdata.inst(ico(1)).channels(COLLCHANS, :);
-        chans = arrayfun (@(x) strtrim(chans(x, 1:end)),...
-                            1:size(chans, 1),...
-                            'UniformOutput', false...
+        switch ico(2)
+            case {0, 33, 34, 35, 36} %{collective, ao0, ao1, ao2, ao3}
+                % if not all outputs are set, just set specified outputs and leave
+                % the rest as is
+                chans = smdata.inst(ico(1)).channels(COLLCHANS, :);
+                chans = arrayfun (@(x) strtrim(chans(x, 1:end)),...
+                                    1:size(chans, 1),...
+                                    'UniformOutput', false...
+                                    );
+                if ico(2) == 0
+                    for ch = 1:length(smdata.inst(ico(1)).data.currentOutput)
+                        tmp = val(...
+                            strcmp (chans, smdata.inst(ico(1)).data.output.Channels(ch).ID)...
                             );
-        if ico(2) == 0
-            for ch = 1:length(smdata.inst(ico(1)).data.currentOutput)
-                tmp = val(...
-                    strcmp (chans, smdata.inst(ico(1)).data.output.Channels(ch).ID)...
-                    );
-                if isempty(tmp)
-                    queue(ch) = smdata.inst(ico(1)).data.currentOutput(ch);
+                        if isempty(tmp)
+                            queue(ch) = smdata.inst(ico(1)).data.currentOutput(ch);
+                        else
+                            queue(ch) = tmp;
+                        end
+                    end
                 else
-                    queue(ch) = tmp;
+                    queue = smdata.inst(ico(1)).data.currentOutput;
+                    ch  = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
+                    ind = strcmp (ch, chans);
+                    queue(ind) = val;
                 end
-            end
-        else
-            queue = smdata.inst(ico(1)).data.currentOutput;
-            ch  = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
-            ind = strcmp (ch, chans);
-            queue(ind) = val;
-        end
         
-        smdata.inst(ico(1)).data.output.wait; %safety wait
+                smdata.inst(ico(1)).data.output.wait; %safety wait
         
-        % in case you just want to step
-        if nargin < 3
-            rate = Inf;
-        end
+                % in case you just want to step
+                if nargin < 3
+                   rate = Inf;
+                end
         
-        if rate > 0
-            smdata.inst(ico(1)).data.output.queueOutputData (queue);
-            smdata.inst(ico(1)).data.output.startBackground;
-            smdata.inst(ico(1)).data.currentOutput = queue;
-            val = size(queue, 1) / abs(smdata.inst(ico(1)).data.output.Rate);
-        elseif rate < 0
-            npoints = smdata.inst(ico(1)).data.output.Rate / abs(rate) * ...
-                max(abs(smdata.inst(ico(1)).data.currentOutput - queue));
+                if rate > 0
+                    %fprintf ([mat2str(queue) '\n']);
+                    smdata.inst(ico(1)).data.output.queueOutputData (queue);
+                    smdata.inst(ico(1)).data.output.startBackground;
+                    smdata.inst(ico(1)).data.currentOutput = queue;
+                    val = size(queue, 1) / abs(smdata.inst(ico(1)).data.output.Rate);
+                elseif rate < 0
+                    npoints = smdata.inst(ico(1)).data.output.Rate / abs(rate) * ...
+                        max(abs(smdata.inst(ico(1)).data.currentOutput - queue));
             
-            fun = @(x) linspace (smdata.inst(ico(1)).data.currentOutput(x),...
-                                 queue(x),...
-                                 npoints)';
-            ramp = [fun(1) fun(2) fun(3) fun(4)]; %not very generic, to be changed
-            smdata.inst(ico(1)).data.output.queueOutputData (ramp);
-            smdata.inst(ico(1)).data.currentlyQueuedOutput = queue;
-            val = 1 / abs(rate);
-        else
-            error('Cannot ramp at zero ramprate!')
+                    fun = @(x) linspace (smdata.inst(ico(1)).data.currentOutput(x),...
+                                         queue(x),...
+                                         npoints)';
+                    ramp = [fun(1) fun(2) fun(3) fun(4)]; %not very generic, to be changed
+                    smdata.inst(ico(1)).data.output.queueOutputData (ramp);
+                    smdata.inst(ico(1)).data.currentlyQueuedOutput = queue;
+                    val = 1 / abs(rate);
+                else
+                    error('Cannot ramp at zero ramprate!')
+                end
+                
+            case 37:41 %pfi0-pfi4
+                ch       = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
+                chanlist = wrapper (smdata.inst(ico(1)).data.digital.Channels.ID);
+                ind      = strcmp (ch, chanlist);
+                
+                smdata.inst(ico(1)).data.digital.Channels(ind).Direction = 'OutputOnly';
+                
+                queue = [0 0 0 0 0];
+                queue(ind) = val;
+                
+                smdata.inst(ico(1)).data.digital.outputSingleScan (queue);
+                smdata.inst(ico(1)).data.currentDigitalOutput = queue;
+                
         end
-        
-    case 3 %Trigger, has to be 'collectivelized' as well
+    case 3 %Trigger, has to be 'collectivelized' as well;
         ch = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
         if regexp (ch, '^ai([0-9]|([1-2][0-9])|(3[01]))$', 'ONCE')
             if ~smdata.inst(ico(1)).data.input.IsRunning
@@ -111,7 +136,7 @@ switch ico(3)
             error('No trigger available for selected channel!')
         end
            
-    case 5
+    case 5 %configure
         ch = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
         %Add channel
         try smdata.inst(ico(1)).data.input.addAnalogInputChannel(...
@@ -121,10 +146,7 @@ switch ico(3)
                 );
         catch err
             errStr = 'NI: The channel ''ai([0-9]|([1-2][0-9])|(3[01]))'' cannot be added to the session because it has been added previously.';
-            if regexp (err.message, errStr, 'ONCE')
-                    warning (['Channel already added to session. Consider'...
-                        ' adding a cleanupfn if scan results in errors!']);
-            else
+            if ~regexp (err.message, errStr, 'ONCE')
                 rethrow(err);
             end
         end
@@ -153,9 +175,10 @@ switch ico(3)
         %TODO: Needs to be improved, if more than one NI daq-device is installed
         dev = daq.getDevices;
         if strcmp (dev.Description, 'National Instruments PCIe-6363')
-            smdata.inst(ico(1)).data.id = dev.ID;
-            smdata.inst(ico(1)).data.output = daq.createSession('ni');
-            smdata.inst(ico(1)).data.input = daq.createSession('ni');
+            smdata.inst(ico(1)).data.id      = dev.ID;
+            smdata.inst(ico(1)).data.output  = daq.createSession('ni');
+            smdata.inst(ico(1)).data.input   = daq.createSession('ni');
+            smdata.inst(ico(1)).data.digital = daq.createSession('ni');
         else
             error ('Device not found!')
         end
@@ -169,8 +192,17 @@ switch ico(3)
         smdata.inst(ico(1)).data.output.queueOutputData([0 0 0 0]);
         smdata.inst(ico(1)).data.output.startForeground;
         smdata.inst(ico(1)).data.currentOutput = [0 0 0 0];
+        
+        %Digital channels
+        smdata.inst(ico(1)).data.digital.addDigitalChannel(...
+                smdata.inst(ico(1)).data.id,...
+                'port1/line1:5',...
+                'Bidirectional'...
+                );
+        smdata.inst(ico(1)).data.currentDigitalOutput = [0 0 0 0 0];
+        
         %Maybe add configuration for analog outputs here, e.g. range, triggers etc.
-                
+             
     otherwise
         error('Operation not supported!')
 end
