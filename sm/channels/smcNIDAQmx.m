@@ -16,14 +16,22 @@ end
 
 switch ico(3)
     case 0 %Read
-        ch       = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
+        ch = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
         
         switch ico(2)
-            case 1:32 %analog inputs
+            case num2cell(1:32) %analog inputs
                 chanlist = wrapper (smdata.inst(ico(1)).data.input.Channels.ID);
                 ind      = strcmp (ch, chanlist);
                 if smdata.inst(ico(1)).datadim(ico(2), 1) > 1 %buffered readout
                     smdata.inst(ico(1)).data.input.wait();
+                    %wait implemented manually
+%                     t = now;
+%                     while smdata.inst(ico(1)).data.input.IsRunning
+%                         if 24*3600*(now-t) > 10
+%                             break;
+%                         end
+%                     end
+%                     pause(1);
                     if smdata.inst(ico(1)).data.input.IsDone
                         val = smdata.inst(ico(1)).data.buf(:, ind);
                     else
@@ -34,12 +42,12 @@ switch ico(3)
                     val = val(ind);
                 end
                 
-            case 33:36 %analog outputs
+            case num2cell(33:36) %analog outputs
                 chanlist = wrapper (smdata.inst(ico(1)).data.output.Channels.ID);
                 ind = strcmp (ch, chanlist);
                 val = smdata.inst(ico(1)).data.currentOutput(ind);
             
-            case mat2cell(37:41) %pfi0-pfi4
+            case num2cell(37:41) %pfi0-pfi4
                 chanlist = wrapper (smdata.inst(ico(1)).data.digital.Channels.ID);
                 ind = strcmp (ch, chanlist);
                 val = smdata.inst(ico(1)).data.currentDigitalOutput(ind);
@@ -104,12 +112,12 @@ switch ico(3)
                     error('Cannot ramp at zero ramprate!')
                 end
                 
-            case 37:41 %pfi0-pfi4
+            case num2cell(37:41) %pfi0-pfi4
                 ch       = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
                 chanlist = wrapper (smdata.inst(ico(1)).data.digital.Channels.ID);
                 ind      = strcmp (ch, chanlist);
                 
-                smdata.inst(ico(1)).data.digital.Channels(ind).Direction = 'OutputOnly';
+                %smdata.inst(ico(1)).data.digital.Channels(ind).Direction = 'OutputOnly';
                 
                 queue = [0 0 0 0 0];
                 queue(ind) = val;
@@ -130,11 +138,16 @@ switch ico(3)
                 %Start background job
                 smdata.inst(ico(1)).data.output.startBackground;
                 smdata.inst(ico(1)).data.currentOutput = ...
-                    smdata.inst(ico(1)).data.currentlyQueuedOutput;
+                    smdata.inst(ico(1)).data.currentlyQueuedOutput; %not safe when measurement fails
             end
         else
             error('No trigger available for selected channel!')
         end
+        
+    case 4 %Arm
+% brain-fart; smabufconfig2 is called before ramp configuration
+%         smdata.inst(ico(1)).data.input.startBackground;
+%         smdata.inst(ico(1)).data.output.startBackground; %not safe when measurement fails
            
     case 5 %configure
         ch = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
@@ -196,9 +209,10 @@ switch ico(3)
         %Digital channels
         smdata.inst(ico(1)).data.digital.addDigitalChannel(...
                 smdata.inst(ico(1)).data.id,...
-                'port1/line1:5',...
-                'Bidirectional'...
+                'port1/line0:4',...
+                'OutputOnly'...
                 );
+        smdata.inst(ico(1)).data.digital.outputSingleScan ([0 0 0 0 0]);
         smdata.inst(ico(1)).data.currentDigitalOutput = [0 0 0 0 0];
         
         %Maybe add configuration for analog outputs here, e.g. range, triggers etc.
