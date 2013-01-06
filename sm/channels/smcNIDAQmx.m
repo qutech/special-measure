@@ -23,15 +23,13 @@ switch ico(3)
                 chanlist = wrapper (smdata.inst(ico(1)).data.input.Channels.ID);
                 ind      = strcmp (ch, chanlist);
                 if smdata.inst(ico(1)).datadim(ico(2), 1) > 1 %buffered readout
-                    smdata.inst(ico(1)).data.input.wait();
-                    %wait implemented manually
-%                     t = now;
-%                     while smdata.inst(ico(1)).data.input.IsRunning
-%                         if 24*3600*(now-t) > 10
-%                             break;
-%                         end
-%                     end
-%                     pause(1);
+                    if smdata.inst(ico(1)).data.input.IsRunning && ...
+                            ~smdata.inst(ico(1)).data.input.IsDone
+                        % The DAQ-toolbox wait implementation is too static
+                        % modified it for our own purposes (see below)
+                        waitRunning (ico(1), 'input', 10);
+                    end
+                                        
                     if smdata.inst(ico(1)).data.input.IsDone
                         val = smdata.inst(ico(1)).data.buf(:, ind);
                     else
@@ -84,8 +82,9 @@ switch ico(3)
                     queue(ind) = val;
                 end
         
-                smdata.inst(ico(1)).data.output.wait; %safety wait
-        
+                % smdata.inst(ico(1)).data.output.wait; %safety wait
+                waitRunning (ico(1), 'output', 10);
+                
                 % in case you just want to step
                 if nargin < 3
                    rate = Inf;
@@ -93,8 +92,8 @@ switch ico(3)
         
                 if rate > 0
                     %fprintf ([mat2str(queue) '\n']);
-                    smdata.inst(ico(1)).data.output.queueOutputData (queue);
-                    smdata.inst(ico(1)).data.output.startBackground;
+                    smdata.inst(ico(1)).data.output.outputSingleScan (queue);
+                    %smdata.inst(ico(1)).data.output.startBackground;
                     smdata.inst(ico(1)).data.currentOutput = queue;
                     val = size(queue, 1) / abs(smdata.inst(ico(1)).data.output.Rate);
                 elseif rate < 0
@@ -106,6 +105,7 @@ switch ico(3)
                                          npoints)';
                     ramp = [fun(1) fun(2) fun(3) fun(4)]; %not very generic, to be changed
                     smdata.inst(ico(1)).data.output.queueOutputData (ramp);
+                    smdata.inst(ico(1)).data.output.prepare();
                     smdata.inst(ico(1)).data.currentlyQueuedOutput = queue;
                     val = 1 / abs(rate);
                 else
@@ -117,6 +117,7 @@ switch ico(3)
                 chanlist = wrapper (smdata.inst(ico(1)).data.digital.Channels.ID);
                 ind      = strcmp (ch, chanlist);
                 
+                % does only work when adding channels
                 %smdata.inst(ico(1)).data.digital.Channels(ind).Direction = 'OutputOnly';
                 
                 queue = [0 0 0 0 0];
@@ -181,6 +182,7 @@ switch ico(3)
                     );
         end
         
+        smdata.inst(ico(1)).data.input.prepare();
         smdata.inst(ico(1)).datadim(ico(2), 1) = val;
         %fprintf('CHECK!\n')
         
@@ -216,7 +218,8 @@ switch ico(3)
         smdata.inst(ico(1)).data.currentDigitalOutput = [0 0 0 0 0];
         
         %Maybe add configuration for analog outputs here, e.g. range, triggers etc.
-             
+        smdata.inst(ico(1)).data.digital.prepare();
+        
     otherwise
         error('Operation not supported!')
 end
@@ -227,4 +230,35 @@ function outputData (inst, data)
     global smdata
     smdata.inst(inst).data.buf = [];
     smdata.inst(inst).data.buf = data;
+end
+
+function waitRunning (inst, session, timeout)
+%wait implemented manually
+    global smdata
+%     t = now;
+%     while smdata.inst(inst).data.(session).IsRunning
+%         if 24*3600*(now-t) > timeout % in seconds
+%             error ('Wait timeout!');
+%         end
+%     end
+
+% MODIFIED VERSION OF doWait in Session.m
+    obj = smdata.inst(inst).data.(session);
+    % Validate timeout
+    if ~isscalar(timeout) || ~isnumeric(timeout) || isnan(timeout) || timeout <= 0
+        error('Invalid timeout!')
+    end
+    if obj.IsContinuous && isinf(timeout)
+        error('No inf wait in continuous mode allowed!')
+    end
+            
+    % Wait for up to timeout seconds for obj to reach IsRunning state.
+    localTimer = tic;
+    while obj.IsRunning == true &&...
+            (isinf(timeout) || toc(localTimer) < timeout)
+        drawnow();
+    end
+    if obj.IsRunning == true
+        error('Wait timeout!')
+    end
 end
