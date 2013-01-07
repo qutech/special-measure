@@ -113,36 +113,32 @@ switch ico(3)
                 end
                 
             case num2cell(37:41) %pfi0-pfi4
-                ch       = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
-                chanlist = wrapper (smdata.inst(ico(1)).data.digital.Channels.ID);
-                ind      = strcmp (ch, chanlist);
-                
-                % does only work when adding channels
-                %smdata.inst(ico(1)).data.digital.Channels(ind).Direction = 'OutputOnly';
-                
-                queue = [0 0 0 0 0];
-                queue(ind) = val;
-                
-                smdata.inst(ico(1)).data.digital.outputSingleScan (queue);
-                smdata.inst(ico(1)).data.currentDigitalOutput = queue;
+                setDigitalChannel (ico, val);
                 
         end
     case 3 %Trigger, has to be 'collectivelized' as well;
-        ch = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
-        if regexp (ch, '^ai([0-9]|([1-2][0-9])|(3[01]))$', 'ONCE')
-            if ~smdata.inst(ico(1)).data.input.IsRunning
-                %Start background job
-                smdata.inst(ico(1)).data.input.startBackground;
-            end
-        elseif regexp (ch, '^ao[0123]$', 'ONCE')
-            if ~smdata.inst(ico(1)).data.output.IsRunning
-                %Start background job
-                smdata.inst(ico(1)).data.output.startBackground;
-                smdata.inst(ico(1)).data.currentOutput = ...
+        switch ico(2)
+            case num2cell(1:32) %analog inputs
+                if ~smdata.inst(ico(1)).data.input.IsRunning
+                    %Start background job
+                    smdata.inst(ico(1)).data.input.startBackground;
+                end
+            
+            case num2cell(33:36) %analog outputs
+                if ~smdata.inst(ico(1)).data.output.IsRunning
+                    %Start background job
+                    smdata.inst(ico(1)).data.output.startBackground;
+                    smdata.inst(ico(1)).data.currentOutput = ...
                     smdata.inst(ico(1)).data.currentlyQueuedOutput; %not safe when measurement fails
-            end
-        else
-            error('No trigger available for selected channel!')
+                end
+            
+            case num2cell(37:41) %pfi0-pfi4
+                %trigger on rising edge
+                setDigitalChannel (ico, 0);
+                setDigitalChannel (ico, 1);
+                
+            otherwise
+                error('No trigger available for selected channel!')
         end
         
     case 4 %Arm
@@ -214,8 +210,9 @@ switch ico(3)
                 'port1/line0:4',...
                 'OutputOnly'...
                 );
-        smdata.inst(ico(1)).data.digital.outputSingleScan ([0 0 0 0 0]);
-        smdata.inst(ico(1)).data.currentDigitalOutput = [0 0 0 0 0];
+        queue = zeros (1, length(smdata.inst(ico(1)).data.digital.Channels));    
+        smdata.inst(ico(1)).data.digital.outputSingleScan (queue);
+        smdata.inst(ico(1)).data.currentDigitalOutput = queue;
         
         %Maybe add configuration for analog outputs here, e.g. range, triggers etc.
         smdata.inst(ico(1)).data.digital.prepare();
@@ -261,4 +258,19 @@ function waitRunning (inst, session, timeout)
     if obj.IsRunning == true
         error('Wait timeout!')
     end
+end
+
+function val = setDigitalChannel (ico, val)
+    global smdata
+    wrapper = @(varargin) varargin;
+    
+    ch       = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
+    chanlist = wrapper (smdata.inst(ico(1)).data.digital.Channels.ID);
+    ind      = strcmp (ch, chanlist);
+               
+    queue = smdata.inst(ico(1)).data.currentDigitalOutput;
+    queue(ind) = val;
+                
+    smdata.inst(ico(1)).data.digital.outputSingleScan (queue);
+    smdata.inst(ico(1)).data.currentDigitalOutput = queue;
 end
