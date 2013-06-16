@@ -51,11 +51,19 @@ else
             1/abs(scan.loops(1).ramptime));
         scan.loops(1).ramptime = sign(scan.loops(1).ramptime)/abs(rate);
     end
-    
-    if strfind(cntrl, 'trig')
-        scan.loops(1).trigfn.fn = @smatrigfn;
-        scan.loops(1).trigfn.args = {[setic; getic]};
-    end
+end
+
+if strfind(cntrl, 'trig')
+  if ~exist('setic', 'var')
+    setic = [];
+  end
+  
+  if ~exist('getic', 'var')
+    getic = [];
+  end
+  
+  scan.loops(1).trigfn.fn = @smatrigfn;
+  scan.loops(1).trigfn.args = {[setic; getic]};
 end
 
 if strfind(cntrl, 'arm')

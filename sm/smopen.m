@@ -21,7 +21,7 @@ for i = inst
     if isfield(smdata.inst(i), 'cntrlfn')
         if ~isempty(smdata.inst(i).cntrlfn)
             try
-                smdata.inst(i).cntrlfn( [inst 0 6], 0, 0);
+                smdata.inst(i).cntrlfn([inst 1 6], 0, 0); % use channel 1 as this is used as a subscript index by some drivers e.g. decaDAC
             catch err
                 if strfind (upper (err.message), 'OPERATION NOT SUPPORTED')
                     warning (['Instrument ' smdata.inst(i).device ...

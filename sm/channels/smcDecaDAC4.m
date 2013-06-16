@@ -22,6 +22,7 @@ if smdata.inst(ic(1)).channels(ic(2), 1) == 'S'
 
         case 0
             val = smdata.inst(ic(1)).data.scriptaddr;
+
     end
     return;
 end
@@ -77,6 +78,9 @@ switch ic(3)
         
     case 3        
         dacwrite(smdata.inst(ic(1)).data.inst, sprintf('B%1d;C%1d;G0;', floor((ic(2)-1)/8), floor(mod(ic(2)-1, 8)/2)));
+        
+  case 6 % initialise the DAC 
+         smadacinit(ic(1)) 
         
     otherwise
         error('Operation not supported');
