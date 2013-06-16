@@ -27,9 +27,9 @@ switch ico(3)
                             ~smdata.inst(ico(1)).data.input.IsDone
                         % The DAQ-toolbox wait implementation is too static
                         % modified it for our own purposes (see below)
-                        waitRunning (ico(1), 'input', 10);
+                        waitRunning (ico(1), 'input', 10); %fix 10 secs for longer scans
                     end
-                                        
+                                                            
                     if smdata.inst(ico(1)).data.input.IsDone
                         val = smdata.inst(ico(1)).data.buf(:, ind);
                     else
@@ -45,7 +45,7 @@ switch ico(3)
                 ind = strcmp (ch, chanlist);
                 val = smdata.inst(ico(1)).data.currentOutput(ind);
             
-            case num2cell(37:41) %pfi0-pfi4
+            case num2cell(37:51) %pfi0-pfi14
                 chanlist = wrapper (smdata.inst(ico(1)).data.digital.Channels.ID);
                 ind = strcmp (ch, chanlist);
                 val = smdata.inst(ico(1)).data.currentDigitalOutput(ind);
@@ -112,7 +112,7 @@ switch ico(3)
                     error('Cannot ramp at zero ramprate!')
                 end
                 
-            case num2cell(37:41) %pfi0-pfi4
+            case num2cell(37:51) %pfi0-pfi14
                 setDigitalChannel (ico, val);
                 
         end
@@ -132,19 +132,21 @@ switch ico(3)
                     smdata.inst(ico(1)).data.currentlyQueuedOutput; %not safe when measurement fails
                 end
             
-            case num2cell(37:41) %pfi0-pfi4
+            case num2cell(37:51) %pfi0-pfi14
                 %trigger on rising edge
                 setDigitalChannel (ico, 0);
                 setDigitalChannel (ico, 1);
+                setDigitalChannel (ico, 0);
                 
             otherwise
                 error('No trigger available for selected channel!')
         end
         
     case 4 %Arm
-% brain-fart; smabufconfig2 is called before ramp configuration
-%         smdata.inst(ico(1)).data.input.startBackground;
-%         smdata.inst(ico(1)).data.output.startBackground; %not safe when measurement fails
+        if ~smdata.inst(ico(1)).data.input.IsRunning
+            smdata.inst(ico(1)).data.input.startBackground;
+        end
+        %smdata.inst(ico(1)).data.output.startBackground; %not safe when measurement fails
            
     case 5 %configure
         ch = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
@@ -166,7 +168,7 @@ switch ico(3)
             max (rate, rateLimit(1)) );
         
         if val > 1
-            smdata.inst(1).data.input.NumberOfScans = val;
+            smdata.inst(ico(1)).data.input.NumberOfScans = val;
             smdata.inst(ico(1)).data.input.NotifyWhenDataAvailableExceeds = ...
                 val;
         
@@ -204,10 +206,15 @@ switch ico(3)
         smdata.inst(ico(1)).data.output.startForeground;
         smdata.inst(ico(1)).data.currentOutput = [0 0 0 0];
         
-        %Digital channels
+        %Digital channels (PFI1-13)
         smdata.inst(ico(1)).data.digital.addDigitalChannel(...
                 smdata.inst(ico(1)).data.id,...
-                'port1/line0:4',...
+                'port1/line1:7',...
+                'OutputOnly'...
+                );
+        smdata.inst(ico(1)).data.digital.addDigitalChannel(...
+                smdata.inst(ico(1)).data.id,...
+                'port2/line0:5',...
                 'OutputOnly'...
                 );
         queue = zeros (1, length(smdata.inst(ico(1)).data.digital.Channels));    
