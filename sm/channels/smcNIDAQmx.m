@@ -163,9 +163,13 @@ switch ico(3)
             end
         end
         
-        rateLimit = smdata.inst(ico(1)).data.input.RateLimit;
-        smdata.inst(ico(1)).data.input.Rate = min (rateLimit(2),... 
-            max (rate, rateLimit(1)) );
+        if nargin > 2
+            rateLimit = smdata.inst(ico(1)).data.input.RateLimit;
+            smdata.inst(ico(1)).data.input.Rate = min (rateLimit(2),... 
+                max (rate, rateLimit(1)) );
+        else
+            rate = 0;
+        end
         
         if val > 1
             smdata.inst(ico(1)).data.input.NumberOfScans = val;

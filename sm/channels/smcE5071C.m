@@ -274,7 +274,8 @@ switch ico(3)   % which driver function to perform,...
         fprintf(smdata.inst(ico(1)).data.inst, ':SENS:SWE:TIME %f', val/rate);
         
         fprintf(smdata.inst(ico(1)).data.inst, ':SENS:SWE:POIN %d', val);             
-        smdata.inst(ico(1)).datadim([5 8]) = val;
+        smdata.inst(ico(1)).datadim(5,:) = val;
+        smdata.inst(ico(1)).datadim(8,:) = val;
         
     otherwise
         error('Operation not supported');
