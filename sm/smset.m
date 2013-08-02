@@ -51,7 +51,7 @@ if nargin >= 3 %&& ~isempty(ramprate)
     end
 end
 
-%limits & conversion factor
+%limits & conversion factor for potential dividers 
 vals = max(min(vals, rangeramp(:, 2)), rangeramp(:, 1));
 
 vals2 = vals .* rangeramp(:, 4);

@@ -4,7 +4,7 @@ function val = smcDecaDAC4(ic, val, rate)
 global smdata;
 
 
-if smdata.inst(ic(1)).channels(ic(2), 1) == 'S'
+if smdata.inst(ic(1)).channels(ic(2), :) == 'SCRIPT'
     switch ic(3)
         case 1
             query(smdata.inst(ic(1)).data.inst, 'X0;'); % clear buffer to avoid overflows

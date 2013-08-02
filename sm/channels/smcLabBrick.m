@@ -41,7 +41,7 @@ try
   end
   
   % Supported command info
-  cmds(1).scale=1e3;
+  cmds(1).scale=1e5;    % from 1e3 by tim
   cmds(1).size=4;
   cmds(1).name='Frequency';
   cmds(1).cmd=[4 132];
