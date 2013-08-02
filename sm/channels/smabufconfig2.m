@@ -57,14 +57,27 @@ else
             1/abs(scan.loops(1).ramptime), args{:});
         scan.loops(1).ramptime = sign(scan.loops(1).ramptime)/abs(rate);
     end
-    
-    if strfind(cntrl, 'trig')
-        scan.loops(1).trigfn.fn = @smatrigfn;
-        scan.loops(1).trigfn.args = {[getic; setic]};
-    end
+end
+
+if strfind(cntrl, 'trig')
+  if ~exist('setic', 'var')
+    setic = [];
+  end
+  
+  if ~exist('getic', 'var')
+    getic = [];
+  end
+  
+  scan.loops(1).trigfn.fn = @smatrigfn;
+        scan.loops(1).trigfn.args = {[setic; getic]};
 end
 
 if strfind(cntrl, 'arm')
-    scan.loops(loop).prefn(1).fn = @smatrigfn;
-    scan.loops(loop).prefn(1).args = {getic, 4};
+    if strfind(cntrl,'end') % bad hack, need to fix this
+      scan.loops(loop).prefn(end).fn = @smatrigfn;
+      scan.loops(loop).prefn(end).args = {getic, 4};  
+    else
+      scan.loops(loop).prefn(1).fn = @smatrigfn;
+      scan.loops(loop).prefn(1).args = {getic, 4};
+    end
 end

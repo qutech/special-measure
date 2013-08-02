@@ -273,9 +273,18 @@ for i = 1:nloops
                 if isempty(scandef(i).trafofn{j})
                     scandef(i).trafofn{j} = @(x, y) x(i);
                 end
-            elseif isempty(scandef(i).trafofn(j).fn)
-                scandef(i).trafofn(j).fn = @(x, y) x(i);
-                scandef(i).trafofn(j).args = {};
+            else
+                if isempty(scandef(i).trafofn(j).fn)
+                  scandef(i).trafofn(j).fn = @(x, y) x(i);
+                  scandef(i).trafofn(j).args = {};
+                end
+                if ~iscell(scandef(i).trafofn(j).args)
+                    if ~isempty(scandef(i).trafofn(j).args)
+                        error('Trafofn args must be a cell array');
+                    else
+                        scandef(i).trafofn(j).args={};
+                    end
+                end
             end                
         end
     end
@@ -440,7 +449,11 @@ end
 
 x = zeros(1, nloops);
 
-configvals = cell2mat(smget(smdata.configch));
+if isfield(scan,'configch')
+  configvals = cell2mat(smget(scan.configch));    
+else
+  configvals = cell2mat(smget(smdata.configch));
+end
 configch = {smdata.channels(smchanlookup(smdata.configch)).name};
 
 configdata = cell(1, length(smdata.configfn));
@@ -486,7 +499,7 @@ for i = 1:totpoints
 
     xt = x;  
     for k = 1:length(scan.trafofn)
-        xt = trafocall(scan.trafofn(k), xt);
+        xt = globaltrafocall(scan.trafofn(k), xt);
     end
 
     for j = fliplr(loops(~isdummy(loops) | count(loops)==1))
@@ -511,7 +524,7 @@ for i = 1:totpoints
                 x2(j) = scandef(j).rng(end);
                 %x2 = fliplr(x2);
                 for k = 1:length(scan.trafofn)
-                    x2 = trafocall(scan.trafofn(k), x2);
+                    x2 = globaltrafocall(scan.trafofn(k), x2);
                 end
 
                 val2 = trafocall(scandef(j).trafofn, x2, smdata.chanvals);
@@ -680,11 +693,20 @@ else
         if ischar(fns(i).fn)
           fns(i).fn = str2func(fns(i).fn);
         end
+        if ~iscell(fns(i).args)
+            if isempty(fns(i).args)
+                fns(i).args={};
+            else
+                error('Arguments to functions must be a cell array');
+            end
+        end
         fns(i).fn(varargin{:}, fns(i).args{:});        
     end
 end
 end
 
+% this trafocall does not work in GLOBAL trafos where length(fn) is always
+% equal to one
 function v = trafocall(fn, varargin)   
 v = zeros(1, length(fn));
 if iscell(fn)
@@ -701,5 +723,22 @@ else
         end
         v(i) = fn(i).fn(varargin{:}, fn(i).args{:});
     end
+end
+end
+
+% made this more static, since loop variables 'x' are always passed
+% global transformations have to return length(x) values
+function v = globaltrafocall(fn, x, varargin)   
+% v = zeros(1, length(x));
+if iscell(fn) % not sure when one would need this
+    if ischar(fn)
+        fn = str2func(fn);
+    end
+    v = fn(x, varargin{:});
+else
+    if ischar(fn.fn)
+        fn.fn = str2func(fn.fn);
+    end
+    v = fn.fn(x, varargin{:}, fn.args{:});
 end
 end
