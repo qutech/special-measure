@@ -17,21 +17,24 @@ end
 switch ico(3)
     case 0 %Read
         ch = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
-        
+                        
         switch ico(2)
             case num2cell(1:32) %analog inputs
                 chanlist = wrapper (smdata.inst(ico(1)).data.input.Channels.ID);
                 ind      = strcmp (ch, chanlist);
-                if smdata.inst(ico(1)).datadim(ico(2), 1) > 1 %buffered readout
+                downsamp = smdata.inst(ico(1)).data.downsamp;
+                nsamp = smdata.inst(ico(1)).datadim(ico(2), 1);
+                if (nsamp > 1 || downsamp > 1) %buffered readout
                     if smdata.inst(ico(1)).data.input.IsRunning && ...
                             ~smdata.inst(ico(1)).data.input.IsDone
-                        % The DAQ-toolbox wait implementation is too static
-                        % modified it for our own purposes (see below)
-                        waitRunning (ico(1), 'input', 10); %fix 10 secs for longer scans
+                        smdata.inst(ico(1)).data.input.wait;
                     end
                                                             
                     if smdata.inst(ico(1)).data.input.IsDone
                         val = smdata.inst(ico(1)).data.buf(:, ind);
+                        if downsamp > 1
+                            val = mean(reshape(val(1:downsamp*nsamp), downsamp, nsamp));
+                        end
                     else
                         error('Wait for DataAvailable failed!')
                     end
@@ -82,14 +85,18 @@ switch ico(3)
                     queue(ind) = val;
                 end
         
-                % smdata.inst(ico(1)).data.output.wait; %safety wait
-                waitRunning (ico(1), 'output', 10);
+                smdata.inst(ico(1)).data.output.wait; %safety wait
                 
                 % in case you just want to step
                 if nargin < 3
                    rate = Inf;
                 end
-        
+                
+%                 rateLimit = smdata.inst(ico(1)).data.output.RateLimit;
+%                 smdata.inst(ico(1)).data.output.Rate = min (rateLimit(2),... 
+%                     max (abs(rate), rateLimit(1)) );
+%                 rate = sign(rate) * smdata.inst(ico(1)).data.output.Rate;
+                
                 if rate > 0
                     %fprintf ([mat2str(queue) '\n']);
                     smdata.inst(ico(1)).data.output.outputSingleScan (queue);
@@ -97,7 +104,7 @@ switch ico(3)
                     smdata.inst(ico(1)).data.currentOutput = queue;
                     val = size(queue, 1) / abs(smdata.inst(ico(1)).data.output.Rate);
                 elseif rate < 0
-                    npoints = smdata.inst(ico(1)).data.output.Rate / abs(rate) * ...
+                    npoints = smdata.inst(ico(1)).data.output.Rate / abs(rate) *...
                         max(abs(smdata.inst(ico(1)).data.currentOutput - queue));
             
                     fun = @(x) linspace (smdata.inst(ico(1)).data.currentOutput(x),...
@@ -105,7 +112,7 @@ switch ico(3)
                                          npoints)';
                     ramp = [fun(1) fun(2) fun(3) fun(4)]; %not very generic, to be changed
                     smdata.inst(ico(1)).data.output.queueOutputData (ramp);
-                    smdata.inst(ico(1)).data.output.prepare();
+                    %smdata.inst(ico(1)).data.output.prepare();
                     smdata.inst(ico(1)).data.currentlyQueuedOutput = queue;
                     val = 1 / abs(rate);
                 else
@@ -142,11 +149,7 @@ switch ico(3)
                 error('No trigger available for selected channel!')
         end
         
-    case 4 %Arm
-        if ~smdata.inst(ico(1)).data.input.IsRunning
-            smdata.inst(ico(1)).data.input.startBackground;
-        end
-        %smdata.inst(ico(1)).data.output.startBackground; %not safe when measurement fails
+    case 4 %Arm        
            
     case 5 %configure
         ch = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
@@ -163,28 +166,30 @@ switch ico(3)
             end
         end
         
-        if nargin > 2
-            rateLimit = smdata.inst(ico(1)).data.input.RateLimit;
-            smdata.inst(ico(1)).data.input.Rate = min (rateLimit(2),... 
-                max (rate, rateLimit(1)) );
+        smdata.inst(ico(1)).data.output.Rate = rate;
+        
+        smdata.inst(ico(1)).data.downsamp = ...
+            smdata.inst(ico(1)).data.input.Rate / rate;
+        
+        % could add some error checks here
+        if smdata.inst(ico(1)).data.downsamp > 1
+            npt = ceil( val / smdata.inst(ico(1)).data.downsamp) * ...
+                smdata.inst(ico(1)).data.downsamp^2;
         else
-            rate = 0;
+            npt = val;
         end
         
-        if val > 1
-            smdata.inst(ico(1)).data.input.NumberOfScans = val;
-            smdata.inst(ico(1)).data.input.NotifyWhenDataAvailableExceeds = ...
-                val;
+        smdata.inst(ico(1)).data.input.NumberOfScans = npt;
+        smdata.inst(ico(1)).data.input.NotifyWhenDataAvailableExceeds = npt;
         
-            %Create listener for acquisition
-            smdata.inst(ico(1)).data.lh = ...
-                smdata.inst(ico(1)).data.input.addlistener(...
-                    'DataAvailable',...
-                    @(src, event) outputData(ico(1), event.Data)...
-                    );
-        end
+        %Create listener for acquisition
+        smdata.inst(ico(1)).data.lh = ...
+            smdata.inst(ico(1)).data.input.addlistener(...
+                'DataAvailable',...
+                @(src, event) outputData(ico(1), event.Data)...
+                );
         
-        smdata.inst(ico(1)).data.input.prepare();
+        %smdata.inst(ico(1)).data.input.prepare();
         smdata.inst(ico(1)).datadim(ico(2), 1) = val;
         %fprintf('CHECK!\n')
         
@@ -240,37 +245,6 @@ function outputData (inst, data)
     smdata.inst(inst).data.buf = data;
 end
 
-function waitRunning (inst, session, timeout)
-%wait implemented manually
-    global smdata
-%     t = now;
-%     while smdata.inst(inst).data.(session).IsRunning
-%         if 24*3600*(now-t) > timeout % in seconds
-%             error ('Wait timeout!');
-%         end
-%     end
-
-% MODIFIED VERSION OF doWait in Session.m
-    obj = smdata.inst(inst).data.(session);
-    % Validate timeout
-    if ~isscalar(timeout) || ~isnumeric(timeout) || isnan(timeout) || timeout <= 0
-        error('Invalid timeout!')
-    end
-    if obj.IsContinuous && isinf(timeout)
-        error('No inf wait in continuous mode allowed!')
-    end
-            
-    % Wait for up to timeout seconds for obj to reach IsRunning state.
-    localTimer = tic;
-    while obj.IsRunning == true &&...
-            (isinf(timeout) || toc(localTimer) < timeout)
-        drawnow();
-    end
-    if obj.IsRunning == true
-        error('Wait timeout!')
-    end
-end
-
 function val = setDigitalChannel (ico, val)
     global smdata
     wrapper = @(varargin) varargin;
@@ -285,3 +259,35 @@ function val = setDigitalChannel (ico, val)
     smdata.inst(ico(1)).data.digital.outputSingleScan (queue);
     smdata.inst(ico(1)).data.currentDigitalOutput = queue;
 end
+
+
+% function waitRunning (inst, session, timeout)
+% %wait implemented manually
+%     global smdata
+% %     t = now;
+% %     while smdata.inst(inst).data.(session).IsRunning
+% %         if 24*3600*(now-t) > timeout % in seconds
+% %             error ('Wait timeout!');
+% %         end
+% %     end
+% 
+% % MODIFIED VERSION OF doWait in Session.m
+%     obj = smdata.inst(inst).data.(session);
+%     % Validate timeout
+%     if ~isscalar(timeout) || ~isnumeric(timeout) || isnan(timeout) || timeout <= 0
+%         error('Invalid timeout!')
+%     end
+%     if obj.IsContinuous && isinf(timeout)
+%         error('No inf wait in continuous mode allowed!')
+%     end
+%             
+%     % Wait for up to timeout seconds for obj to reach IsRunning state.
+%     localTimer = tic;
+%     while obj.IsRunning == true &&...
+%             (isinf(timeout) || toc(localTimer) < timeout)
+%         drawnow();
+%     end
+%     if obj.IsRunning == true
+%         error('Wait timeout!')
+%     end
+% end

@@ -1,9 +1,4 @@
 function val = smcHP8350B(ic, val, rate, varargin)
-% 1: freq, 2: power
-% units are Hz and dBm
-
-global smdata;
-
 % 1  CW  CWFreqency 
 % 2  PL  PowerLevel 
 % 3  FA  FreqStart
@@ -14,6 +9,10 @@ global smdata;
 % 8  T4  Single Sweep
 % 9  ST  Sweep Time
 % 10 SX  External Sweep (via front or back BNC connection)
+
+global smdata;
+
+
 cmds = {'CW', 'PL', 'FA', 'FB', 'RF', 'TS', 'T3', 'T4', 'ST', 'SX'};
 units = {'HZ', 'DM', 'HZ', 'HZ', '', '', '', '', 'SC', ''};
 
