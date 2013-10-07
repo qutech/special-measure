@@ -1,8 +1,27 @@
 function val = smcDecaDAC4(ic, val, rate)
 % With ramp support and new trigger scheme. Odd channels are ramped.
 % Improved error treatment compared to smcdecaDAC3.m
+% see this driver for ExtTrig options
 global smdata;
 
+%  Ext Trig options 
+% (empirically DecaDAC trigger on rising>1.84V or falling< 1.76V)
+%  all the ExtTrig options are over written by ico(3) = software trig (case 3)
+% 0 = update always 
+% 1/9 = undefined
+% 2 = update if Trig 1 low
+% 3 = update if Trig 2 low
+% 4 = update until rising edge of trig1
+% 5 = update until rising edge of Trig 2
+% 6 = update until falling edge of Trig 1
+% 7 = update until falling edge of Trig 2
+% 8 = update never (i.e. pause)
+% 10 = update if Trig 1 high
+% 11 = update if Trig 2 high
+% 12 = updtae after risign edge of Trig 1
+% 13 = update after rising edge of Trig 2
+% 14 = update after falling edge of Trig 1
+% 15 = update after falling edge of Trig 2
 
 if smdata.inst(ic(1)).channels(ic(2), :) == 'SCRIPT'
     switch ic(3)
