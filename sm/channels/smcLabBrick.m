@@ -93,6 +93,12 @@ try
       if bytes < 0; error('hidapi:hiderror','Error sending command get %s\n',cmds(ic(2)).name); end;
       clear p;
       clear cmd;
+  elseif ic(3) == 6 %init
+      try
+          loadlibrary(smdata.inst(ic(1)).data.dll);
+      catch
+          error('No DLL set');
+      end
   else    % get
       if ic(2) > length(cmds)
           error('Unknown channel %d\n', ic(2));

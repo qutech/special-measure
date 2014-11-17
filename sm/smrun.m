@@ -101,9 +101,15 @@ if isfield(scan,'consts') && ~isempty(scan.consts)
     smset(setchans, setvals);
 end
 
-if isfield(scan, 'configfn')
+if isfield(scan, 'configfn') 
     for i = 1:length(scan.configfn)
         scan = scan.configfn(i).fn(scan, scan.configfn(i).args{:});
+    end
+end
+
+if isfield(scan, 'prefn') && ~isempty(scan.prefn)
+    for i = 1:length(scan.prefn)
+        scan.prefn(i).fn(scan.prefn(i).args{:});
     end
 end
 
@@ -171,7 +177,7 @@ if nargin >= 2 && filename(2)~=':'
         filename = 'data';
     end
     
-    if all(filename ~= '/')
+    if all(filename ~= filesep) 
         filename = sprintf('sm_%s.mat', filename);
     end
     
@@ -346,10 +352,10 @@ switch length(disp)
         sbpl = [2 2];
         
     case {5, 6}
-        sbpl = [2 3];
+        sbpl = [3 2];
         
     otherwise
-        sbpl = [3 3];
+        sbpl = [4 2];
         disp(10:end) = [];
 end
 
@@ -372,7 +378,11 @@ if ~ishandle(figurenumber);
     set(figurenumber, 'pos', [10, 10, 800, 400]);
 else
     figure(figurenumber);
-    clf;
+     if isfield(scan,'fighold') && scan.fighold == 1
+       hold on
+     else
+      clf;
+     end
 end
 
 
@@ -392,7 +402,14 @@ for i = 1:length(disp)
     subplot(sbpl(1), sbpl(2), i);
     dc = disp(i).channel; %index of channel to be displayed
     % modify if reducing data before plotting
-
+    
+    % use scan.fighold = 1 to add to previous plot
+     if isfield(scan,'fighold') && scan.fighold == 1
+       hold on
+     else
+      hold off;
+     end
+    
     s.subs = num2cell(ones(1, nloops - dataloop(dc) + 1 + ndim(dc)));
     [s.subs{end-disp(i).dim+1:end}] = deal(':');
     %s.subs = [num2cell(ones(1, dataloop(scan.dispchan(i)) + ndim(scan.dispchan(i))-2)), ':', ':'];
@@ -422,6 +439,7 @@ for i = 1:length(disp)
                 ylab = '';
             end
         end
+
         z = zeros(length(y), length(x));
         z(:, :) = subsref(data{dc}, s);
         disph(i) = imagesc(x, y, z);
@@ -469,7 +487,8 @@ if nargin >= 2
     save(filename, 'configvals', 'configdata', 'scan', 'configch');
     str = [configch; num2cell(configvals)];
     logentry(filename);
-    logadd(sprintf('%s=%.3g, ', str{:}));
+%     logadd(sprintf('%s=%.3g, ', str{:})); % org version
+    logadd(sprintf('%s=%.5g, ', str{:})); % TB
 end
 
 tic;

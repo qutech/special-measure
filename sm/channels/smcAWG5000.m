@@ -1,5 +1,5 @@
 function val = smcAWG5000(ico, val, rate)
-% 1: freq (FG mode), 2: clock (AWG mode), 3-6: CH1,2 amplitude (not sure if working in FG mode),  
+% 1: freq (FuncGen mode), 2: clock (AWG mode), 3-6: CH1,2 amplitude (not sure if working in FG mode),  
 % 7: jump to line (requires active sequence)
 % 8-11 DC offset for channels 1-4
 % 12:27: MARKER 1-4 Low/High for channels 1-4

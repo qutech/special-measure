@@ -35,7 +35,7 @@ Zfieldconst= smdata.inst(ico(1)).data.TperA; % Amps/Telsa
 % x- y- limits
 
 % Defaults
-default_Zramp_rate = Max_Zramp_rate/2;
+default_Zramp_rate = Max_Zramp_rate/4;
 lead_ramp_rate = smdata.inst(ico(1)).data.leadramprate; % fast rate for rmping leads 12A/s
 heater_wait_time = smdata.inst(ico(1)).data.heaterwaittime; % time (in secs) for switch to go normal/SC
 % warning('heater wait time is set to 2s for testing, revert to ~10s for operation');

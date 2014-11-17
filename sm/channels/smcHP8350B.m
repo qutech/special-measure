@@ -9,12 +9,12 @@ function val = smcHP8350B(ic, val, rate, varargin)
 % 8  T4  Single Sweep
 % 9  ST  Sweep Time
 % 10 SX  External Sweep (via front or back BNC connection)
-
+% 11 CF  Center Freqency 
 global smdata;
 
-
-cmds = {'CW', 'PL', 'FA', 'FB', 'RF', 'TS', 'T3', 'T4', 'ST', 'SX'};
-units = {'HZ', 'DM', 'HZ', 'HZ', '', '', '', '', 'SC', ''};
+%         1    2      3     4     5     6    7     8      9    10    11
+cmds = {'CW', 'PL', 'FA', 'FB', 'RF', 'TS', 'T3', 'T4', 'ST', 'SX','CF'};
+units = {'HZ', 'DM', 'HZ', 'HZ', '', '', '', '', 'SC', '','HZ'};
 
 switch ic(3)
     case 0

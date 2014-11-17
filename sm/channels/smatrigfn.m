@@ -14,6 +14,7 @@ if nargin > 1
     inst = inst2;
 end
 
+
 alreadyTriggered = [];
 for i = 1:size(inst, 1)
     % just trigger collective channels once (does only work with type = 2
@@ -22,9 +23,11 @@ for i = 1:size(inst, 1)
             any (alreadyTriggered == inst(i, 1)) 
         continue; 
     end
-    
+% daqfn('AlazarTriggered', smdata.inst(8).data.handle)
     smdata.inst(inst(i, 1)).cntrlfn([inst(i, :), op]);
-    
+%      if ((op==3) && (inst(i,1) ==8))
+%     disp([inst(i, 2), calllib('ATSApi', 'AlazarTriggered', smdata.inst(8).data.handle)])
+%     end   
     if smdata.inst(inst(i, 1)).type(inst(i, 2)) == 2
         alreadyTriggered(end+1) = inst(i, 1);
     end
