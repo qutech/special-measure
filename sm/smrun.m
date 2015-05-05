@@ -107,12 +107,6 @@ if isfield(scan, 'configfn')
     end
 end
 
-if isfield(scan, 'prefn') && ~isempty(scan.prefn)
-    for i = 1:length(scan.prefn)
-        scan.prefn(i).fn(scan.prefn(i).args{:});
-    end
-end
-
 scandef = scan.loops;
 
 if ~isfield(scan, 'disp') || isempty(scan.disp)
@@ -487,8 +481,7 @@ if nargin >= 2
     save(filename, 'configvals', 'configdata', 'scan', 'configch');
     str = [configch; num2cell(configvals)];
     logentry(filename);
-%     logadd(sprintf('%s=%.3g, ', str{:})); % org version
-    logadd(sprintf('%s=%.5g, ', str{:})); % TB
+    logadd(sprintf('%s=%.5g, ', str{:}));
 end
 
 tic;
