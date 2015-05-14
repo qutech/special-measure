@@ -350,7 +350,15 @@ switch length(disp)
         
     otherwise
         sbpl = [3 3];
-        disp(10:end) = [];
+		disp(10:end) = [];
+
+    % alternative declaration; kept old version, though; jan-michael mol
+	%case {5, 6}
+    %    sbpl = [3 2];
+    %    
+    %otherwise
+    %    sbpl = [4 2];
+    %    disp(10:end) = [];
 end
 
 
@@ -372,7 +380,11 @@ if ~ishandle(figurenumber);
     set(figurenumber, 'pos', [10, 10, 800, 400]);
 else
     figure(figurenumber);
-    clf;
+    if isfield(scan,'fighold') && scan.fighold == 1
+       hold on
+    else
+       clf;
+    end
 end
 
 
@@ -392,7 +404,14 @@ for i = 1:length(disp)
     subplot(sbpl(1), sbpl(2), i);
     dc = disp(i).channel; %index of channel to be displayed
     % modify if reducing data before plotting
-
+    
+    % use scan.fighold = 1 to add to previous plot
+    if isfield(scan,'fighold') && scan.fighold == 1
+        hold on;
+    else
+        hold off;
+    end
+    
     s.subs = num2cell(ones(1, nloops - dataloop(dc) + 1 + ndim(dc)));
     [s.subs{end-disp(i).dim+1:end}] = deal(':');
     %s.subs = [num2cell(ones(1, dataloop(scan.dispchan(i)) + ndim(scan.dispchan(i))-2)), ':', ':'];
@@ -422,6 +441,7 @@ for i = 1:length(disp)
                 ylab = '';
             end
         end
+
         z = zeros(length(y), length(x));
         z(:, :) = subsref(data{dc}, s);
         disph(i) = imagesc(x, y, z);
@@ -469,7 +489,7 @@ if nargin >= 2
     save(filename, 'configvals', 'configdata', 'scan', 'configch');
     str = [configch; num2cell(configvals)];
     logentry(filename);
-    logadd(sprintf('%s=%.3g, ', str{:}));
+    logadd(sprintf('%s=%.5g, ', str{:}));
 end
 
 tic;
@@ -499,7 +519,7 @@ for i = 1:totpoints
 
     xt = x;  
     for k = 1:length(scan.trafofn)
-        xt = trafocall(scan.trafofn(k), xt);
+        xt = globaltrafocall(scan.trafofn(k), xt);
     end
 
     for j = fliplr(loops(~isdummy(loops) | count(loops)==1))
@@ -524,7 +544,7 @@ for i = 1:totpoints
                 x2(j) = scandef(j).rng(end);
                 %x2 = fliplr(x2);
                 for k = 1:length(scan.trafofn)
-                    x2 = trafocall(scan.trafofn(k), x2);
+                    x2 = globaltrafocall(scan.trafofn(k), x2);
                 end
 
                 val2 = trafocall(scandef(j).trafofn, x2, smdata.chanvals);
@@ -705,6 +725,8 @@ else
 end
 end
 
+% this trafocall does not work in GLOBAL trafos where length(fn) is always
+% equal to one
 function v = trafocall(fn, varargin)   
 v = zeros(1, length(fn));
 if iscell(fn)
@@ -721,5 +743,22 @@ else
         end
         v(i) = fn(i).fn(varargin{:}, fn(i).args{:});
     end
+end
+end
+
+% made this more static, since loop variables 'x' are always passed
+% global transformations have to return length(x) values
+function v = globaltrafocall(fn, x, varargin)   
+% v = zeros(1, length(x));
+if iscell(fn) % not sure when one would need this
+    if ischar(fn)
+        fn = str2func(fn);
+    end
+    v = fn(x, varargin{:});
+else
+    if ischar(fn.fn)
+        fn.fn = str2func(fn.fn);
+    end
+    v = fn.fn(x, varargin{:}, fn.args{:});
 end
 end

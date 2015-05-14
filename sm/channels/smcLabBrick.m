@@ -46,7 +46,7 @@ try
   end
   
   % Supported command info
-  cmds(1).scale=1e5;
+  cmds(1).scale=1e5;    % from 1e3 by tim botzem
   cmds(1).size=4;
   cmds(1).name='Frequency';
   cmds(1).cmd=[4 132];
@@ -93,6 +93,12 @@ try
       if bytes < 0; error('hidapi:hiderror','Error sending command get %s\n',cmds(ic(2)).name); end;
       clear p;
       clear cmd;
+  elseif ic(3) == 6 %init
+      try
+          loadlibrary(smdata.inst(ic(1)).data.dll);
+      catch
+          error('No DLL set');
+      end
   else    % get
       if ic(2) > length(cmds)
           error('Unknown channel %d\n', ic(2));

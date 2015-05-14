@@ -26,21 +26,26 @@ switch ic(2) % Channel
                         break;
                     else
                         pause(0.8 * (npts + smdata.inst(ic(1)).data.currsamp - navail) ...
+                    
+					if navail >= npts + smdata.inst(ic(1)).data.currsamp(ic(2)-14);
+                        break;
+                    else
+                        pause(0.8 * (npts + smdata.inst(ic(1)).data.currsamp(ic(2)-14) - navail) ...
                             * smdata.inst(ic(1)).data.sampint);
                     end
                 end
                 
                 fprintf(smdata.inst(ic(1)).data.inst, 'TRCB? %d, %d, %d', ...
-                    [ic(2)-14, smdata.inst(ic(1)).data.currsamp+[0, npts]]);
+                    [ic(2)-14, smdata.inst(ic(1)).data.currsamp(ic(2)-14)+[0, npts]]);
                 val = fread(smdata.inst(ic(1)).data.inst, npts, 'single');
-                smdata.inst(ic(1)).data.currsamp =  smdata.inst(ic(1)).data.currsamp + npts;
+                smdata.inst(ic(1)).data.currsamp(ic(2)-14) =  smdata.inst(ic(1)).data.currsamp(ic(2)-14) + npts;
                 
             case 3
                 fprintf(smdata.inst(ic(1)).data.inst, 'STRT');
 
             case 4
                 fprintf(smdata.inst(ic(1)).data.inst, 'REST');
-                smdata.inst(ic(1)).data.currsamp = 0;
+                smdata.inst(ic(1)).data.currsamp = [0, 0];
                 pause(.1); %needed to give instrument time before next trigger.
                 % anything much shorter leads to delays.
                 
@@ -61,7 +66,7 @@ switch ic(2) % Channel
                 %    fprintf(smdata.inst(ic(1)).data.inst, 'REST; SEND 1; TSTR 0; SRAT %i', n);
                 %end
                 pause(.1);
-                smdata.inst(ic(1)).data.currsamp = 0;
+                smdata.inst(ic(1)).data.currsamp = [0 0];
 
                 smdata.inst(ic(1)).data.sampint = 1/rate;
                 smdata.inst(ic(1)).datadim(15:16, 1) = val;

@@ -51,7 +51,7 @@ if nargin >= 3 %&& ~isempty(ramprate)
     end
 end
 
-%limits & conversion factor
+%limits & conversion factor for potential dividers 
 vals = max(min(vals, rangeramp(:, 2)), rangeramp(:, 1));
 
 vals2 = vals .* rangeramp(:, 4);
@@ -67,6 +67,7 @@ end
 
 % channels to ramp.
 
+collchan = find(isfinite(rangeramp(:, 3)) & chantype == 2);
 rampchan = find(isfinite(rangeramp(:, 3))& chantype == 1);
 stepchan = find(isfinite(rangeramp(:, 3)) & chantype == 0);
 
@@ -84,6 +85,13 @@ end
 % start ramps
 for k = rampchan' 
     ramptime(k) = smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], vals2(k), rangeramp(k, 3));
+end
+
+% collectively ramped channels
+collinst = unique(instchan(collchan, 1));
+for k = collinst'
+    ind = find(instchan(collchan, 1) == k);
+    ramptime(ind) = smdata.inst(k).cntrlfn([k, instchan(ind, 2)', 1], vals2(ind), rangeramp(ind, 3));
 end
 
 for k = setchan'    
@@ -135,8 +143,9 @@ end
 smdata.chanvals(channels) = vals;
 
 rampchan = rampchan(rangeramp(rampchan, 3) > 0);
-ramptime = ramptime(rampchan);
-if ~isempty(rampchan)
+collchan = collchan(rangeramp(collchan, 3) > 0);
+ramptime = [ ramptime(rampchan) ramptime(collchan) ];
+if ~isempty(rampchan) || ~isempty(collchan)
     pause(max(ramptime) + 24*3600*(tramp - now));
     return; 
     [ramptime, ind] = sort(ramptime, 'descend');

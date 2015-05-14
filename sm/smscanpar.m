@@ -3,6 +3,7 @@ function scan = smscanpar(scan, cntr, rng, npoints, loops)
 % Set center, range and number of points for scan.loops(loops).
 % loops defaults to 1:length(cntr).  Empty or omitted arguments are left unchanged.
 % scan.configfn is executed at the end if present and not empty.
+% not anymore( Tim Botzem): scan.configfn is executed at the end if present and not empty.
 %
 % if cntr is 'gca', copy the range of the current plot to the scan.
 
@@ -37,8 +38,12 @@ if nargin >=4 && ~isempty(npoints)
 end
 
 for i=1:length(scan.consts)
+if isfield(scan, 'consts')
+  for i=1:length(scan.consts)
     smset(scan.consts(i).setchan,scan.consts(i).val);
+  end
 end
+
 if isfield(scan, 'configfn') && ~isempty(scan.configfn)
     scan = scan.configfn.fn(scan, scan.configfn.args{:});
 end

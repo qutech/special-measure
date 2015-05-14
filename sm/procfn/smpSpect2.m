@@ -7,7 +7,8 @@ persistent nold;
 persistent count;
 persistent win;
 
-npls = size(data, 1)/3;
+% npls = size(data, 1)/3
+npls = size(data, 1);
 nsamp = size(data, 2) * 2; % # samples per window
 nnew = length(newdata);
 
