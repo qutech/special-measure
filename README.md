@@ -3,16 +3,16 @@
 Special Measure provides a simple frontend for MATLAB's instrument control toolbox, allowing users to quickly set up flexible scans through parameter space.
 
 # Installation #
-Please see [Installation](Installation.md) for install instructions.
+Please see [Installation](doc/Installation.md) for install instructions.
 
 # Quick Reference #
 
-Please see the [Overview](Overview.md) page for a list of Special Measure functions,
-and [Error Messages](ErrorMessages.md) for a list of common error messages and what to do.
+Please see the [Overview](doc/Overview.md) page for a list of Special Measure functions,
+and [Error Messages](doc/ErrorMessages.md) for a list of common error messages and what to do.
 
 # Configuration Data #
-  * [scan](Scans_new.md) (structure)
-  * [smdata](smdata_new.md) (global structure)
+  * [scan](doc/Scans_new.md) (structure)
+  * [smdata](doc/smdata_new.md) (global structure)
 
 
 # Structure of Special Measure #
@@ -71,12 +71,12 @@ be called by that name.
 
 ---
 
-To add a channel, use the [smaddchannel](smaddchannel.md) function. Note that depending
+To add a channel, use the [smaddchannel](doc/smaddchannel.md) function. Note that depending
 on the instrument, further configuration may be necessary.
 (Particularly for channels to be ramped for data taking, or matrix-valued
 channels).
 
-To remove one or several channels ch, just type "[smdata](smdata#channels.md).channels(ch) = `[]`;"
+To remove one or several channels ch, just type "[smdata](doc/smdata#channels.md).channels(ch) = `[]`;"
 Note that this will change the indices of all subsequent channels.
 
 
@@ -84,8 +84,8 @@ Note that this will change the indices of all subsequent channels.
 
 ---
 
-Use the smprint**function to display the most important configuration
-information.**
+Use the smprintfunctions to display the most important configuration
+information.
 
 
 ### Displaying the current channel values ###
@@ -102,5 +102,5 @@ To disable this feature, close figure 1001.
 
 ---
 
-The measurement task to be excecuted by [smrun](smrun.md) is defined by a [scan](Scans_new.md) struct passed to [smrun](smrun.md). For explanations of its fields, see [scan](Scans_new.md).
+The measurement task to be excecuted by [smrun](doc/smrun.md) is defined by a [scan](doc/Scans_new.md) struct passed to [smrun](doc/smrun.md). For explanations of its fields, see [scan](doc/Scans_new.md).
 Note that some of the parameters are optional.
