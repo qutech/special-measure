@@ -17,19 +17,32 @@ end
 switch ico(3)
     case 0 %Read
         ch = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
-                        
+        %Add channel
+        try smdata.inst(ico(1)).data.input.addAnalogInputChannel(...
+                smdata.inst(ico(1)).data.id,...
+                ch,...
+                'Voltage'...
+                );
+        catch err
+            errStr = 'NI: The channel ''ai([0-9]|([1-2][0-9])|(3[01]))'' cannot be added to the session because it has been added previously.';
+            if ~regexp (err.message, errStr, 'ONCE')
+                rethrow(err);
+            end
+        end
+        
         switch ico(2)
             case num2cell(1:32) %analog inputs
                 chanlist = wrapper (smdata.inst(ico(1)).data.input.Channels.ID);
                 ind      = strcmp (ch, chanlist);
                 downsamp = smdata.inst(ico(1)).data.downsamp;
                 nsamp = smdata.inst(ico(1)).datadim(ico(2), 1);
+                %nsamp = 1;
                 if (nsamp > 1 || downsamp > 1) %buffered readout
                     if smdata.inst(ico(1)).data.input.IsRunning && ...
                             ~smdata.inst(ico(1)).data.input.IsDone
                         smdata.inst(ico(1)).data.input.wait;
                     end
-                                                            
+                    
                     if smdata.inst(ico(1)).data.input.IsDone
                         val = smdata.inst(ico(1)).data.buf(:, ind);
                         if downsamp > 1
@@ -106,15 +119,18 @@ switch ico(3)
                 elseif rate < 0
                     npoints = smdata.inst(ico(1)).data.output.Rate / abs(rate) *...
                         max(abs(smdata.inst(ico(1)).data.currentOutput - queue));
+                    npoints = floor(npoints);
             
                     fun = @(x) linspace (smdata.inst(ico(1)).data.currentOutput(x),...
                                          queue(x),...
                                          npoints)';
                     ramp = [fun(1) fun(2) fun(3) fun(4)]; %not very generic, to be changed
+                    smdata.inst(ico(1)).data.output.release;
                     smdata.inst(ico(1)).data.output.queueOutputData (ramp);
                     %smdata.inst(ico(1)).data.output.prepare();
                     smdata.inst(ico(1)).data.currentlyQueuedOutput = queue;
-                    val = 1 / abs(rate);
+                    smdata.inst(ico(1)).data.output.startBackground;
+                    val = size(queue, 1) / abs(smdata.inst(ico(1)).data.output.Rate);
                 else
                     error('Cannot ramp at zero ramprate!')
                 end
@@ -125,22 +141,23 @@ switch ico(3)
         end
     case 3 %Trigger, has to be 'collectivelized' as well;
         switch ico(2)
-            case num2cell(1:32) %analog inputs
-                if ~smdata.inst(ico(1)).data.input.IsRunning
-                    %Start background job
-                    smdata.inst(ico(1)).data.input.startBackground;
-                end
-            
-            case num2cell(33:36) %analog outputs
-                if ~smdata.inst(ico(1)).data.output.IsRunning
-                    %Start background job
-                    smdata.inst(ico(1)).data.output.startBackground;
-                    smdata.inst(ico(1)).data.currentOutput = ...
-                    smdata.inst(ico(1)).data.currentlyQueuedOutput; %not safe when measurement fails
-                end
-            
-            case num2cell(37:51) %pfi0-pfi14
+%             case num2cell(1:32) %analog inputs
+%                 if ~smdata.inst(ico(1)).data.input.IsRunning
+%                     %Start background job
+%                     smdata.inst(ico(1)).data.input.startBackground;
+%                 end
+%                             
+%             case num2cell(33:36) %analog outputs
+%                 if ~smdata.inst(ico(1)).data.output.IsRunning
+%                     %Start background job
+%                     smdata.inst(ico(1)).data.output.startBackground;
+%                     smdata.inst(ico(1)).data.currentOutput = ...
+%                     smdata.inst(ico(1)).data.currentlyQueuedOutput; %not safe when measurement fails
+%                 end
+%             
+            case num2cell(1:51) %pfi0-pfi14
                 %trigger on rising edge
+                smdata.inst(ico(1)).data.input.startBackground();
                 setDigitalChannel (ico, 0);
                 setDigitalChannel (ico, 1);
                 setDigitalChannel (ico, 0);
@@ -169,7 +186,8 @@ switch ico(3)
         smdata.inst(ico(1)).data.output.Rate = rate;
         
         smdata.inst(ico(1)).data.downsamp = ...
-            smdata.inst(ico(1)).data.input.Rate / rate;
+            floor(smdata.inst(ico(1)).data.input.Rate / rate);
+        rate = smdata.inst(ico(1)).data.input.Rate / smdata.inst(ico(1)).data.downsamp;
         
         % could add some error checks here
         if smdata.inst(ico(1)).data.downsamp > 1
@@ -195,14 +213,18 @@ switch ico(3)
         
     case 6 %Initialize card
         %TODO: Needs to be improved, if more than one NI daq-device is installed
-        dev = daq.getDevices;
-        if strcmp (dev.Description, 'National Instruments PCIe-6363')
-            smdata.inst(ico(1)).data.id      = dev.ID;
-            smdata.inst(ico(1)).data.output  = daq.createSession('ni');
-            smdata.inst(ico(1)).data.input   = daq.createSession('ni');
-            smdata.inst(ico(1)).data.digital = daq.createSession('ni');
-        else
-            error ('Device not found!')
+        %dev = daq.getDevices;
+        daq.reset
+        daq.HardwareInfo.getInstance('DisableReferenceClockSynchronization',true);
+        
+        for dev = daq.getDevices
+            if strcmp (dev.Description, 'National Instruments PCIe-6363')
+                smdata.inst(ico(1)).data.id      = dev.ID;
+                smdata.inst(ico(1)).data.output  = daq.createSession('ni');
+                smdata.inst(ico(1)).data.input   = daq.createSession('ni');
+                smdata.inst(ico(1)).data.digital = daq.createSession('ni');
+                disp('Found NI PCIe-6363!')
+            end
         end
         
         %Add all analog channels
