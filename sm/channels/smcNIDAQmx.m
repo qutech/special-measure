@@ -1,34 +1,34 @@
 function [val, rate] = smcNIDAQmx(ico, val, rate)
 global smdata
-%little workaround because of the stupid session interface
+% little workaround because of the session interface
 wrapper = @(varargin) varargin;
-% TODO cleanupfn which removes the channels after a measurement
 
-% workaround for now
+% workaround; better ideas are always welcome
 COLLCHANS = smdata.inst(ico(1)).type == 2;
 if length(ico) > 3
     COLLCHANS  = ico(2:end-1);
     ico(2)     = 0;
     ico(3)     = ico(end);
     ico(4:end) = [];
-    rate       = rate ( find (abs(rate) == max (abs (rate)), 1) );
+    rate       = rate ( find (abs(rate) == min (abs (rate)), 1) );
 end
 
 switch ico(3)
     case 0 %Read
         ch = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
-        %Add channel
-        try smdata.inst(ico(1)).data.input.addAnalogInputChannel(...
-                smdata.inst(ico(1)).data.id,...
-                ch,...
-                'Voltage'...
-                );
-        catch err
-            errStr = 'NI: The channel ''ai([0-9]|([1-2][0-9])|(3[01]))'' cannot be added to the session because it has been added previously.';
-            if ~regexp (err.message, errStr, 'ONCE')
-                rethrow(err);
-            end
-        end
+        
+        %Add channel DEPRECATED
+%         try smdata.inst(ico(1)).data.input.addAnalogInputChannel(...
+%                 smdata.inst(ico(1)).data.id,...
+%                 ch,...
+%                 'Voltage'...
+%                 );
+%         catch err
+%             errStr = 'NI: The channel ''ai([0-9]|([1-2][0-9])|(3[01]))'' cannot be added to the session because it has been added previously.';
+%             if ~regexp (err.message, errStr, 'ONCE')
+%                 rethrow(err);
+%             end
+%         end
         
         switch ico(2)
             case num2cell(1:32) %analog inputs
@@ -36,13 +36,14 @@ switch ico(3)
                 ind      = strcmp (ch, chanlist);
                 downsamp = smdata.inst(ico(1)).data.downsamp;
                 nsamp = smdata.inst(ico(1)).datadim(ico(2), 1);
-                %nsamp = 1;
+                
+                while (smdata.inst(ico(1)).data.input.IsRunning && ...
+                        ~smdata.inst(ico(1)).data.input.IsDone)
+                    smdata.inst(ico(1)).data.input.wait;
+%                     fprintf('running...\n');
+                end
+                
                 if (nsamp > 1 || downsamp > 1) %buffered readout
-                    if smdata.inst(ico(1)).data.input.IsRunning && ...
-                            ~smdata.inst(ico(1)).data.input.IsDone
-                        smdata.inst(ico(1)).data.input.wait;
-                    end
-                    
                     if smdata.inst(ico(1)).data.input.IsDone
                         val = smdata.inst(ico(1)).data.buf(:, ind);
                         if downsamp > 1
@@ -105,31 +106,28 @@ switch ico(3)
                    rate = Inf;
                 end
                 
-%                 rateLimit = smdata.inst(ico(1)).data.output.RateLimit;
-%                 smdata.inst(ico(1)).data.output.Rate = min (rateLimit(2),... 
-%                     max (abs(rate), rateLimit(1)) );
-%                 rate = sign(rate) * smdata.inst(ico(1)).data.output.Rate;
+                rate = sign(rate) * smdata.inst(ico(1)).data.output.Rate;
                 
                 if rate > 0
                     %fprintf ([mat2str(queue) '\n']);
                     smdata.inst(ico(1)).data.output.outputSingleScan (queue);
-                    %smdata.inst(ico(1)).data.output.startBackground;
                     smdata.inst(ico(1)).data.currentOutput = queue;
-                    val = size(queue, 1) / abs(smdata.inst(ico(1)).data.output.Rate);
+                    val = 0;
                 elseif rate < 0
-                    npoints = smdata.inst(ico(1)).data.output.Rate / abs(rate) *...
-                        max(abs(smdata.inst(ico(1)).data.currentOutput - queue));
-                    npoints = floor(npoints);
+%                     npoints = smdata.inst(ico(1)).data.output.Rate / abs(rate) *...
+%                         max(abs(smdata.inst(ico(1)).data.currentOutput - queue));
+                    % dirty workaround
+                    npoints = smdata.inst(ico(1)).data.input.NumberOfScans;
             
                     fun = @(x) linspace (smdata.inst(ico(1)).data.currentOutput(x),...
                                          queue(x),...
                                          npoints)';
-                    ramp = [fun(1) fun(2) fun(3) fun(4)]; %not very generic, to be changed
-                    smdata.inst(ico(1)).data.output.release;
+                    % not very generic, to be changed
+                    ramp = [fun(1) fun(2) fun(3) fun(4)]; 
+%                     smdata.inst(ico(1)).data.output.release;
                     smdata.inst(ico(1)).data.output.queueOutputData (ramp);
                     %smdata.inst(ico(1)).data.output.prepare();
                     smdata.inst(ico(1)).data.currentlyQueuedOutput = queue;
-                    smdata.inst(ico(1)).data.output.startBackground;
                     val = size(queue, 1) / abs(smdata.inst(ico(1)).data.output.Rate);
                 else
                     error('Cannot ramp at zero ramprate!')
@@ -141,32 +139,43 @@ switch ico(3)
         end
     case 3 %Trigger, has to be 'collectivelized' as well;
         switch ico(2)
-%             case num2cell(1:32) %analog inputs
-%                 if ~smdata.inst(ico(1)).data.input.IsRunning
-%                     %Start background job
-%                     smdata.inst(ico(1)).data.input.startBackground;
-%                 end
-%                             
-%             case num2cell(33:36) %analog outputs
-%                 if ~smdata.inst(ico(1)).data.output.IsRunning
-%                     %Start background job
-%                     smdata.inst(ico(1)).data.output.startBackground;
-%                     smdata.inst(ico(1)).data.currentOutput = ...
-%                     smdata.inst(ico(1)).data.currentlyQueuedOutput; %not safe when measurement fails
-%                 end
-%             
-            case num2cell(1:51) %pfi0-pfi14
-                %trigger on rising edge
-                smdata.inst(ico(1)).data.input.startBackground();
-                setDigitalChannel (ico, 0);
-                setDigitalChannel (ico, 1);
-                setDigitalChannel (ico, 0);
+            case num2cell(1:32) %analog inputs
+                if ~smdata.inst(ico(1)).data.input.IsRunning
+                    %Start background job
+                    smdata.inst(ico(1)).data.input.startBackground;
+                end
+                            
+            case num2cell(33:36) %analog outputs
+                %Start background job
+                smdata.inst(ico(1)).data.output.startBackground;
+                %not safe when measurement fails
+                smdata.inst(ico(1)).data.currentOutput = ...
+                    smdata.inst(ico(1)).data.currentlyQueuedOutput;
+
+% UNSUPPORTED! See auxiliary function smaNIDAQmx for further details                
+% do not like this way of triggering any longer; inconvenient to work with                
+%             case num2cell(1:51) %pfi0-pfi14
+%                 %trigger on rising edge
+%                 smdata.inst(ico(1)).data.input.startBackground();
+%                 setDigitalChannel (ico, 0);
+%                 setDigitalChannel (ico, 1);
+%                 setDigitalChannel (ico, 0);
                 
             otherwise
                 error('No trigger available for selected channel!')
         end
         
-    case 4 %Arm        
+    case 4 %Arm
+        switch ico(2)
+            case num2cell(1:32) %analog inputs
+                if ~smdata.inst(ico(1)).data.input.IsRunning
+                    %Start background job
+                    smdata.inst(ico(1)).data.input.startBackground;
+                end
+                
+            otherwise
+                error('No arming procedure available for selected channel!')
+        end
            
     case 5 %configure
         ch = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
@@ -183,16 +192,17 @@ switch ico(3)
             end
         end
         
-        smdata.inst(ico(1)).data.output.Rate = rate;
-        
         smdata.inst(ico(1)).data.downsamp = ...
             floor(smdata.inst(ico(1)).data.input.Rate / rate);
         rate = smdata.inst(ico(1)).data.input.Rate / smdata.inst(ico(1)).data.downsamp;
         
+        if smdata.inst(ico(1)).data.downsamp == 0
+            error('Input rate too large.');
+        end
+        
         % could add some error checks here
         if smdata.inst(ico(1)).data.downsamp > 1
-            npt = ceil( val / smdata.inst(ico(1)).data.downsamp) * ...
-                smdata.inst(ico(1)).data.downsamp^2;
+            npt = val * smdata.inst(ico(1)).data.downsamp;
         else
             npt = val;
         end
@@ -214,8 +224,12 @@ switch ico(3)
     case 6 %Initialize card
         %TODO: Needs to be improved, if more than one NI daq-device is installed
         %dev = daq.getDevices;
-        daq.reset
-        daq.HardwareInfo.getInstance('DisableReferenceClockSynchronization',true);
+        
+        % ---------------------------------------------------------------
+        % THIS SECTION CAN VERY EASILY BE MIGRATED TO THE RESPECTIVE SMA
+        % FUNCTION TO ADD VARIABILITY AND BETTER ERROR HANDLING
+        % ---------------------------------------------------------------
+%         daq.HardwareInfo.getInstance('DisableReferenceClockSynchronization',true);
         
         for dev = daq.getDevices
             if strcmp (dev.Description, 'National Instruments PCIe-6363')

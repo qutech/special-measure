@@ -27,8 +27,10 @@ if strfind(cntrl, 'fast')
         loop = 1;
     end
 else
-    loop = 2; 
-
+    if ~exist('loop', 'var')
+        loop = 2;
+    end
+    
     setic = smchaninst(scan.loops(1).setchan);
     if nargin >= 4
         setic = setic(setrng, :);
@@ -44,6 +46,7 @@ if strfind(cntrl, 'fast')
     args = num2cell(setrng);  
     for i = 1:size(getic, 1)
         smdata.inst(getic(i, 1)).cntrlfn([getic(i, :), 5], args{:});
+        % mol: do not know what this line is for, I guess debugging
         %[setrng(1), setrng(2)] = smdata.inst(getic(i, 1)).cntrlfn([getic(i, :), 5], setrng(1), setrng(2));
     end
 else

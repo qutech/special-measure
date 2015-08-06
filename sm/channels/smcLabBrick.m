@@ -53,7 +53,7 @@ try
   cmds(1).offset=0;
   
   cmds(2).scale=-0.25;
-  cmds(2).offset=-10;
+  cmds(2).offset=-13;
   cmds(2).size=1;
   cmds(2).name='Power (dB)';
   cmds(2).cmd=[13 141];

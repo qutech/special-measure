@@ -1,10 +1,9 @@
 function [val, rate] = smcNIPCI6713(ico, val, rate)
 global smdata
-%little workaround because of the stupid session interface
+%little workaround because of the session interface
 wrapper = @(varargin) varargin;
-% TODO cleanupfn which removes the channels after a measurement
 
-% workaround for now
+% workaround; better ideas are always welcome
 COLLCHANS = smdata.inst(ico(1)).type == 2;
 if length(ico) > 3
     COLLCHANS  = ico(2:end-1);
@@ -19,6 +18,11 @@ switch ico(3)
         ch = strtrim (smdata.inst(ico(1)).channels(ico(2),:));
        
         switch ico(2)
+            case {0,1,2,3,4,5,6,7,8} %{collective, ao0, ao1, ...}
+                chanlist = wrapper (smdata.inst(ico(1)).data.output.Channels.ID);
+                ind = strcmp (ch, chanlist);
+                val = smdata.inst(ico(1)).data.currentOutput(ind);
+                
             otherwise
                 error('Channel not (yet?) configured for readout!')            
         end
@@ -58,32 +62,31 @@ switch ico(3)
                    rate = Inf;
                 end
                 
-%                 rateLimit = smdata.inst(ico(1)).data.output.RateLimit;
-%                 smdata.inst(ico(1)).data.output.Rate = min (rateLimit(2),... 
-%                     max (abs(rate), rateLimit(1)) );
-%                 rate = sign(rate) * smdata.inst(ico(1)).data.output.Rate;
+                rate = sign(rate) * smdata.inst(ico(1)).data.output.Rate;
                 
                 if rate > 0
                     %fprintf ([mat2str(queue) '\n']);
-                    smdata.inst(ico(1)).data.output.outputSingleScan (queue);
-                    %smdata.inst(ico(1)).data.output.startBackground;
+%                     smdata.inst(ico(1)).data.output.outputSingleScan (queue);
+                    % this hack does not allow triggered stepping, solution
+                    % is to check for trigger connection to external
+                    % targets
+                    smdata.inst(ico(1)).data.output.queueOutputData(queue);
+                    smdata.inst(ico(1)).data.output.startBackground();
                     smdata.inst(ico(1)).data.currentOutput = queue;
-                    val = size(queue, 1) / abs(smdata.inst(ico(1)).data.output.Rate);
+                    val = 0;
                 elseif rate < 0
-                    npoints = smdata.inst(ico(1)).data.output.Rate / abs(rate) *...
-                        max(abs(smdata.inst(ico(1)).data.currentOutput - queue));
-                    npoints = floor(npoints);
+                    npoints = smdata.inst(ico(1)).data.output.NumberOfScans;
             
                     fun = @(x) linspace (smdata.inst(ico(1)).data.currentOutput(x),...
                                          queue(x),...
                                          npoints)';
+                    %not very generic, to be changed
                     ramp = [fun(1) fun(2) fun(3) fun(4)...
-                        fun(5) fun(6) fun(7) fun(8)]; %not very generic, to be changed
+                        fun(5) fun(6) fun(7) fun(8)];
                     smdata.inst(ico(1)).data.output.release;
                     smdata.inst(ico(1)).data.output.queueOutputData (ramp);
                     %smdata.inst(ico(1)).data.output.prepare();
                     smdata.inst(ico(1)).data.currentlyQueuedOutput = queue;
-                    smdata.inst(ico(1)).data.output.startBackground;
                     val = size(queue, 1) / abs(smdata.inst(ico(1)).data.output.Rate);
                 else
                     error('Cannot ramp at zero ramprate!')
@@ -93,20 +96,34 @@ switch ico(3)
                 setDigitalChannel (ico, val);
                 
         end
-    case 3 %Trigger, has to be 'collectivelized' as well;
+    case 3 % Trigger, has to be 'collectivelized' as well;
         switch(ico(2))
+            case {0,1,2,3,4,5,6,7,8} %{collective, ao0, ao1, ...}
+                % Start background job
+                smdata.inst(ico(1)).data.output.startBackground;
+                % not safe when measurement fails
+                smdata.inst(ico(1)).data.currentOutput = ...
+                    smdata.inst(ico(1)).data.currentlyQueuedOutput;
             otherwise
                 error('No trigger available for selected channel!')
         end
         
-    case 4 %Arm        
+    case 4 %Arm
+        switch ico(2)
+            case {0,1,2,3,4,5,6,7,8} %{collective, ao0, ao1, ...}
+                if ~smdata.inst(ico(1)).data.output.IsRunning
+                    %Start background job
+                    smdata.inst(ico(1)).data.output.startBackground;
+                end
+                
+            otherwise
+                error('No arming procedure available for selected channel!')
+        end
            
     case 5 %configure
                 
     case 6 %Initialize card
-        %TODO: Needs to be improved, if more than one NI daq-device is installed
-        %dev = daq.getDevices;
-        daq.reset
+        % See further details in smcNIDAQmx.m
 %         daq.HardwareInfo.getInstance('DisableReferenceClockSynchronization',true);
         
         for dev = daq.getDevices
@@ -114,7 +131,7 @@ switch ico(3)
                 smdata.inst(ico(1)).data.id      = dev.ID;
                 smdata.inst(ico(1)).data.output  = daq.createSession('ni');
                 smdata.inst(ico(1)).data.digital = daq.createSession('ni');
-                disp('Found NI PCIe-6713!')
+                disp('Found NI PCI-6713!')
             end
         end
         

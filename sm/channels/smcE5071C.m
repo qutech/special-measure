@@ -16,13 +16,12 @@
 %  6     SPARAM -parameters       1:4 = 'S11', 'S12', 'S21', 'S22' (NOTE: string values)
 %  7     IFBW Bandwidth           (1|1.5|2|3|4|5|7)*1,10,100,1k,10k to 500kHz 
 %  8     IDATA                  Imaginary part of S parameters. Must be read after REAL part!    
-% Semi Deprecated - other values that may be useful to get from the instrument
-% These all work but are not considered 'main' functions
 %  9     Num swp points         2-20001 (default is 2-1601) see: http://ena.tm.agilent.com/e5071c/manuals/webhelp/eng/measurement/setting_measurement_conditions/setting_channels_and_traces.htm 
-%  10 start freq
-%  11 stop freq
-%  12     SWEEP TYPE            1:4 =  'LIN', 'LOG', 'SEGM', 'POW' (Note no attempt (yet) to support LOG and SEGM)
-
+%  10    STARTF
+%  11    STOPF
+%  12    SWPTYPE            1:4 =  'LIN', 'LOG', 'SEGM', 'POW' (Note no attempt (yet) to support LOG and SEGM)
+%  13    CNTRFREQ
+%  14    SPANFREQ
 % NOTE: if rate (ico,val,rate) is positive val = StartFreq, if rate is negative val = StopFreq.
 
 global smdata;  % make the struct smdata available 
@@ -72,7 +71,7 @@ switch ico(3)   % which driver function to perform,...
                 %val(2, :) = [];
                 % use fread, !!
                 % avoid reading zeros?
-                pause(.02); % seems to be needed to get fresh data. Experimentally/empirically determined.
+                pause(smdata.inst(ico(1)).data.WaitBeforeRead); % seems to be needed to get fresh data. Experimentally/empirically determined.
                 fprintf(smdata.inst(ico(1)).data.inst, ':CALC:DATA:FDAT?'); 
                 
                 nbyte = sscanf(char(fread(smdata.inst(ico(1)).data.inst, ...
@@ -116,11 +115,17 @@ switch ico(3)   % which driver function to perform,...
                val = query(smdata.inst(ico(1)).data.inst, ':SENS:SWE:POIN?');
                val = str2double(val);
             
-             case 10 % Read back start freq (full version of a query command)
+            case 10 % Read back start freq (full version of a query command)
                 val = query(smdata.inst(ico(1)).data.inst, ':SENS:FREQ:STAR?');
                 val = str2double(val);
-             case {11} % Read back stop freq (minimal version of query command)
+            case {11} % Read back stop freq (minimal version of query command)
                 val = query(smdata.inst(ico(1)).data.inst, ':SENS:FREQ:STOP?');
+                val = str2double(val);
+            case {13}
+                val = query(smdata.inst(ico(1)).data.inst, ':SENS:FREQ:CENT?');
+                val = str2double(val);
+            case {14}
+                val = query(smdata.inst(ico(1)).data.inst, ':SENS:FREQ:SPAN?');
                 val = str2double(val);
             otherwise
                error('Read options are 3-11.')
@@ -166,7 +171,8 @@ switch ico(3)   % which driver function to perform,...
                 
             case 2
                 %same for power
-%               if rate positive set start pow = val 
+%               if rate positive set start pow = val
+            fprintf(smdata.inst(ico(1)).data.inst, ':SENS:SWE:TYPE POW');
             if rate > 0
                     % insert possible sanity check here
                     fprintf(smdata.inst(ico(1)).data.inst, ':SOUR:POW:STAR %f', val);
@@ -174,9 +180,11 @@ switch ico(3)   % which driver function to perform,...
                     fprintf(smdata.inst(ico(1)).data.inst, ':SOUR:POW:STOP %f', val);
                     % set rate querying POW start
 %                     pstop = val; pstart = query(smdata.inst(ico(1)).data.inst, ':SOUR:POW:STAR?','%s\n', '%f');
-                    swp_time = smdata.inst(ico(1)).datadim(5)/abs(rate);
-                    fprintf(smdata.inst(ico(1)).data.inst, ':SENS:SWE:TIME %f', swp_time);
-                    val = swp_time;
+                    %swp_time = smdata.inst(ico(1)).datadim(5)/abs(rate);
+                    %fprintf(smdata.inst(ico(1)).data.inst, ':SENS:SWE:TIME %f', swp_time);
+                    %val = swp_time;
+    % return value is sweep time        
+                    val = query(smdata.inst(ico(1)).data.inst, ':SENS:SWE:TIME?', '%s\n', '%f');                  
                     
             end
                 
@@ -223,7 +231,13 @@ switch ico(3)   % which driver function to perform,...
                 val = query(smdata.inst(ico(1)).data.inst, ':SENS:FREQ:STAR?');
              case {11} % set stop freq 
                 fprintf(smdata.inst(ico(1)).data.inst, ':SENS:FREQ:STOP %f', val);
-                val = query(smdata.inst(ico(1)).data.inst, ':SENS:FREQ:STOP?');                                
+                val = query(smdata.inst(ico(1)).data.inst, ':SENS:FREQ:STOP?');
+            case {13}
+                fprintf(smdata.inst(ico(1)).data.inst, ':SENS:FREQ:CENT %f', val);
+                val = query(smdata.inst(ico(1)).data.inst, ':SENS:FREQ:CENT?');
+            case {14}
+                fprintf(smdata.inst(ico(1)).data.inst, ':SENS:FREQ:SPAN %f', val);
+                val = query(smdata.inst(ico(1)).data.inst, ':SENS:FREQ:SPAN?');
             otherwise
                 error('write options are currently 1:4, 6, 7, 9-11')
         end
