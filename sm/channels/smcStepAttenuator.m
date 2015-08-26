@@ -3,7 +3,7 @@ function val = smcStepAttenuator (ico, val)
 % This driver is tailored for usage with the NIDAQmx PCIe-6363. It uses
 % PFI1-PFI6 as outputs with PFI6 being the control/latch bit.
 global smdata
-INST = sminstlookup('NIDAQmx');
+INST = sminstlookup('NIPCIe6363'); % TODO:CORRECT THIS!
 CHANS = 38:43; %PFI1-PFI6
 
 switch ico(3)

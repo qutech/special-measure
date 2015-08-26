@@ -75,7 +75,7 @@ switch ico(3)
                     smdata.inst(ico(1)).data.currentOutput = queue;
                     val = 0;
                 elseif rate < 0
-                    npoints = smdata.inst(ico(1)).data.output.NumberOfScans;
+                    npoints = smdata.inst(ico(1)).data.nout;
             
                     fun = @(x) linspace (smdata.inst(ico(1)).data.currentOutput(x),...
                                          queue(x),...
@@ -100,10 +100,11 @@ switch ico(3)
         switch(ico(2))
             case {0,1,2,3,4,5,6,7,8} %{collective, ao0, ao1, ...}
                 % Start background job
-                smdata.inst(ico(1)).data.output.startBackground;
+                    smdata.inst(ico(1)).data.output.startBackground;
                 % not safe when measurement fails
                 smdata.inst(ico(1)).data.currentOutput = ...
                     smdata.inst(ico(1)).data.currentlyQueuedOutput;
+                
             otherwise
                 error('No trigger available for selected channel!')
         end

@@ -42,7 +42,7 @@ persistent tmp; % will hold imaginay data.
 %  ':SENS:SWE:POIN', ':SENS:BAND', ':CALC:DATA:FDAT',  ':SENS:FREQ:CENT';
 
 if nargin<3
-     rate=1000;
+    rate=1000;
 end
     
 

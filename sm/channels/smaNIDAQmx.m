@@ -168,7 +168,11 @@ if ip.Results.irate
 end
 
 if ip.Results.npoints
-    smdata.inst(inst).data.input.NumberOfScans = ip.Results.npoints;
+    if strcmp(ip.Results.inst, 'NIPCI6713')
+        smdata.inst(inst).data.nout = ip.Results.npoints;
+    else
+        smdata.inst(inst).data.input.NumberOfScans = ip.Results.npoints;
+    end
 end
 
 % set range of input

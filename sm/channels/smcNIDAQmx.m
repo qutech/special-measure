@@ -100,7 +100,10 @@ switch ico(3)
                 end
         
                 smdata.inst(ico(1)).data.output.wait; %safety wait
-                
+%                 while(smdata.inst(ico(1)).data.output.IsRunning)
+%                     drawnow()
+%                 end
+
                 % in case you just want to step
                 if nargin < 3
                    rate = Inf;
@@ -117,7 +120,14 @@ switch ico(3)
 %                     npoints = smdata.inst(ico(1)).data.output.Rate / abs(rate) *...
 %                         max(abs(smdata.inst(ico(1)).data.currentOutput - queue));
                     % dirty workaround
-                    npoints = smdata.inst(ico(1)).data.input.NumberOfScans;
+                    if ~isempty(smdata.inst(ico(1)).data.sync)
+                        inst = smdata.inst(ico(1)).data.sync;
+                    else
+                        inst  = ico(1);
+                    end
+                        
+                    npoints = smdata.inst(inst).data.input.NumberOfScans / ...
+                        smdata.inst(inst).data.downsamp;
             
                     fun = @(x) linspace (smdata.inst(ico(1)).data.currentOutput(x),...
                                          queue(x),...
