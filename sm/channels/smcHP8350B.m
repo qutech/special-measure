@@ -1,18 +1,3 @@
-function val = smcHP8350B(ic, val, rate)
-% 1: freq, 2: power
-% units are Hz and dBm
-
-global smdata;
-
-cmds = {'CW', 'PL'};
-units = {'HZ', 'DM'};
-
-switch ic(3)
-    case 1
-        fprintf(smdata.inst(ic(1)).data.inst, sprintf('%s %f %s', cmds{ic(2)}, val, units{ic(2)}));
-    case 0
-        val = query(smdata.inst(ic(1)).data.inst, sprintf('OP %s', cmds{ic(2)}), '%s\n', '%f');
-=======
 function val = smcHP8350B(ic, val, rate, varargin)
 % 1  CW  CWFreqency 
 % 2  PL  PowerLevel 
@@ -37,7 +22,7 @@ switch ic(3)
             sprintf('OP %s', cmds{ic(2)}), '%s\n', '%f');
     
     case 1
-        switch ic(2)
+        switch ic(2)    
             case 5 %check for on/off operation
                 fprintf(smdata.inst(ic(1)).data.inst,...
                     sprintf('%s%i', cmds{ic(2)}, val));

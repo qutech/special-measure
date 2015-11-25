@@ -78,7 +78,7 @@ end
  % provided
 if ~isempty(scan.loops(1).ramptime) && scan.loops(1).ramptime<0 && (~isfield(scan.loops(1),'trigfn') || ...
                                     isempty(scan.loops(1).trigfn) || ...
-                                    (isfield(scan.loops(1).trigfn,'autoset') && scan.loops(1).trigfn.autoset))
+                                    (isfield(scan.loops(1).trigfn,'autoset') && scan.loops(1).trigfn(1).autoset))
     scan.loops(1).trigfn.fn=@smatrigfn;
     scan.loops(1).trigfn.args{1}=smchaninst(scan.loops(1).setchan);
 end
@@ -531,6 +531,9 @@ for i = 1:totpoints
         % this is a bit of a hack
         
         % alternative place to call prefn
+%         if isfield(scandef, 'preprefn')
+%             fncall(scandef(j).preprefn, xt);
+%         end
         
         % set autochannels and program ramp only at first loop point
         if count(j) == 1 %
@@ -567,7 +570,7 @@ for i = 1:totpoints
         % prolog functions
         if isfield(scandef, 'prefn')
             fncall(scandef(j).prefn, xt);
-        end              
+        end                 
 
         tp=(tloop(j) - now)*24*3600 + count(j) * max(abs(scandef(j).ramptime));        
         pause(tp);  % Pause always waits 10ms
@@ -594,7 +597,7 @@ for i = 1:totpoints
         % could save a function call/data copy here - not a lot of code               
         newdata = smget(scandef(j).getchan);
         
-        if isfield(scandef, 'postfn')
+        if isfield(scandef(j), 'postfn') && ~isempty(scandef(j).postfn)
             fncall(scandef(j).postfn, xt);
         end
 

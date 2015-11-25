@@ -65,28 +65,24 @@ switch ico(3)
                 rate = sign(rate) * smdata.inst(ico(1)).data.output.Rate;
                 
                 if rate > 0
-                    %fprintf ([mat2str(queue) '\n']);
-%                     smdata.inst(ico(1)).data.output.outputSingleScan (queue);
-                    % this hack does not allow triggered stepping, solution
-                    % is to check for trigger connection to external
-                    % targets
-                    smdata.inst(ico(1)).data.output.queueOutputData(queue);
-                    smdata.inst(ico(1)).data.output.startBackground();
+                    smdata.inst(ico(1)).data.output.outputSingleScan(queue);
                     smdata.inst(ico(1)).data.currentOutput = queue;
+%                     disp('setStartRamp')
                     val = 0;
                 elseif rate < 0
-                    npoints = smdata.inst(ico(1)).data.nout;
+                    npoints = smdata.inst(ico(1)).data.npoints;
             
                     fun = @(x) linspace (smdata.inst(ico(1)).data.currentOutput(x),...
                                          queue(x),...
                                          npoints)';
-                    %not very generic, to be changed
                     ramp = [fun(1) fun(2) fun(3) fun(4)...
                         fun(5) fun(6) fun(7) fun(8)];
-                    smdata.inst(ico(1)).data.output.release;
+%                     smdata.inst(ico(1)).data.output.release;
                     smdata.inst(ico(1)).data.output.queueOutputData (ramp);
-                    %smdata.inst(ico(1)).data.output.prepare();
+%                     smdata.inst(ico(1)).data.output.prepare();
                     smdata.inst(ico(1)).data.currentlyQueuedOutput = queue;
+                    smdata.inst(ico(1)).data.output.startBackground();
+%                     disp('setStopRamp')
                     val = size(queue, 1) / abs(smdata.inst(ico(1)).data.output.Rate);
                 else
                     error('Cannot ramp at zero ramprate!')
@@ -99,8 +95,7 @@ switch ico(3)
     case 3 % Trigger, has to be 'collectivelized' as well;
         switch(ico(2))
             case {0,1,2,3,4,5,6,7,8} %{collective, ao0, ao1, ...}
-                % Start background job
-                    smdata.inst(ico(1)).data.output.startBackground;
+                smdata.inst(ico(1)).data.output.startBackground();
                 % not safe when measurement fails
                 smdata.inst(ico(1)).data.currentOutput = ...
                     smdata.inst(ico(1)).data.currentlyQueuedOutput;
@@ -112,11 +107,24 @@ switch ico(3)
     case 4 %Arm
         switch ico(2)
             case {0,1,2,3,4,5,6,7,8} %{collective, ao0, ao1, ...}
-                if ~smdata.inst(ico(1)).data.output.IsRunning
-                    %Start background job
-                    smdata.inst(ico(1)).data.output.startBackground;
-                end
-                
+%                 This is generally not a good idea; do this in configfn
+%                 if isfield(smdata.inst(ico(1)).data,'trigIn') && ...
+%                         ~isempty(smdata.inst(ico(1)).data.trigIn)
+%                     try
+%                         smdata.inst(ico(1)).data.output.addTriggerConnection(...
+%                             'external',...
+%                             [smdata.inst(ico(1)).data.id '/' smdata.inst(ico(1)).data.trigIn],...
+%                             'StartTrigger');
+%                     catch err
+%                         doThrow = any( [ ~strfind(err.message, 'A StartTrigger connection already exists between'),...
+%                             ~strfind(err.message, 'Attempt to reference field of non-structure array.') ] );
+%                         if doThrow
+%                             rethrow(err);
+%                         end
+%                     end
+%                 end
+%                 disp('armOutput')
+                                
             otherwise
                 error('No arming procedure available for selected channel!')
         end
@@ -131,7 +139,6 @@ switch ico(3)
             if strcmp (dev.Description, 'National Instruments PCI-6713')
                 smdata.inst(ico(1)).data.id      = dev.ID;
                 smdata.inst(ico(1)).data.output  = daq.createSession('ni');
-                smdata.inst(ico(1)).data.digital = daq.createSession('ni');
                 disp('Found NI PCI-6713!')
             end
         end

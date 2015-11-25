@@ -1,44 +1,10 @@
-function scan = smaNIDAQmx(scan, varargin)
-% function scan = smaNIDAQmx(scan, varargin)
-% provides helpers for the NIDAQmx
-% 
-% optional
-% ----------------------------------------------------
-%
-% 'inst' name
-%   name of NI instrument to configure; e.g. 'NIPCIe6363' or 'NIPCI6713'
-%   default: 'NIPCIe6363'
-%
-% 'trig' [source destination]
-%   source is optional; if not specified source = external; if both are
-%   empty, all remaining trigger connections are removed
-% 
-% 'sngl' boolean
-%   if true, just read single points (inputSingleScan); defaults to `false`
-%
-% 'orate' double
-%   sets sampling rate of output; if sampling rate > ramprate -> set downsampling in
-%   smcNIDAQmx
-%
-% 'irate' double
-%   sets sampling rate of input; if sampling rate > ramprate -> set downsampling in
-%   smcNIDAQmx
-%
-% 'npoints' integer
-%   sets the NumberOfScans property of input and output session
-%
-% 'rng' [lower upper]
-%   sets range of input
-%
-% 'addInput' channels as cell
-%   manually adds input channels to the session; TODO: add feature to
-%   remove existing channels
-%
+function scan = smaNIDAQmx(scan, device, varargin)
+% This function is generally deprecated and will likely already not work
+% with the current control functions
 ip = inputParser;
 ip.FunctionName = 'smaNIDAQmx';
 ip.addRequired('scan');
-% changing the default for 'inst' will result in many scans breaking!
-ip.addOptional('inst', 'NIPCIe6363');
+ip.addRequired('device');
 ip.addOptional('trig', {});
 ip.addOptional('sngl', false);
 ip.addOptional('orate', [], @isnumeric);
@@ -46,10 +12,10 @@ ip.addOptional('irate', [], @isnumeric);
 ip.addOptional('npoints', [], @isnumeric);
 ip.addOptional('rng', []);
 ip.addOptional('addInput', []);
-ip.parse(scan,varargin{:});
+ip.parse(scan,device,varargin{:});
 
 global smdata
-inst = sminstlookup(ip.Results.inst);
+inst = sminstlookup(ip.Results.device);
 devID = smdata.inst(inst).data.id;
 
 try smdata.inst(inst).data.input.stop; catch err; end
@@ -74,7 +40,16 @@ if ~isempty(ip.Results.addInput)
 end
 
 % determine number of input channels
-numInputs =  numel(smdata.inst(inst).data.input.Channels);
+try
+    numInputs =  numel(smdata.inst(inst).data.input.Channels);
+catch err
+    doThrow = any(~strfind(err.message,...
+        'Attempt to reference field of non-structure array.'));
+    if doThrow
+        rethrow(err);
+    end
+    numInputs = 0;
+end
 
 % configure triggers
 if ~isempty(ip.Results.trig)
@@ -168,7 +143,7 @@ if ip.Results.irate
 end
 
 if ip.Results.npoints
-    if strcmp(ip.Results.inst, 'NIPCI6713')
+    if strcmp(smdata.inst(inst).device, 'NIPCI6713')
         smdata.inst(inst).data.nout = ip.Results.npoints;
     else
         smdata.inst(inst).data.input.NumberOfScans = ip.Results.npoints;

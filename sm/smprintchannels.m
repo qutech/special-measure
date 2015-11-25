@@ -11,7 +11,7 @@ elseif ischar(ch)||iscell(ch)
     ch = smchanlookup(ch);
 end
 
-fmt = '%2d   %-10s  %-10s  %-10s  %-10s\n';
+fmt = '%2d   %-10s  %-15s  %-15s  %-10s\n';
 fprintf(['CH', fmt(4:end)], 'Name', 'Device', 'Dev. Name', 'Dev. Ch.');
 fprintf([repmat('-', 1, 60), '\n']);
 for i = ch;

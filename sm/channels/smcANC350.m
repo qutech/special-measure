@@ -2,8 +2,13 @@ function [val, rate] = smcANC350(ico, val, rate, varargin)
 global smdata
 
 if ~libisloaded('hvpositionerv2')
-    loadlibrary('hvpositionerv2.dll', 'hvpositionerv2.h');
-    
+    if strcmpi(computer('arch'), 'win64')
+        libname='hvpositionerv2_ia64';
+    else
+        libname='hvpositionerv2';
+    end
+    loadlibrary([libname '.dll'],[libname '.h'],'alias','hvpositionerv2');
+        
     posInfo = libstruct('PositionerInfo');
     numDevices = calllib('hvpositionerv2','PositionerCheck',posInfo);
     if numDevices < 1
@@ -19,7 +24,7 @@ if ~libisloaded('hvpositionerv2')
     if ~isempty(smdata.inst(ico(1)).data.paramFile)
         loadParamFile(smdata.inst(ico(1)).data.devHandle,...
             smdata.inst(ico(1)).data.paramFile);
-    end 
+    end
 end
 
 switch ico(3)
@@ -28,12 +33,15 @@ switch ico(3)
             case 1
                 val = getANC350(smdata.inst(ico(1)).data.devHandle,...
                     'Position','x');
+                val = double(val);
             case 2
                 val = getANC350(smdata.inst(ico(1)).data.devHandle,...
                     'Position','y');
+                val = double(val);
             case 3
                 val = getANC350(smdata.inst(ico(1)).data.devHandle,...
                     'Position','z');
+                val = double(val);
         end
         
     case 1
@@ -76,6 +84,7 @@ elseif retCode <= length(codes)
 else
     error('Call to library returned with error code NCB_Error')
 end
+end
 
 function moveANC350(handle,axis,ref,pos)
 % @param_in axis: specify either 'x', 'y', 'z'
@@ -84,7 +93,7 @@ function moveANC350(handle,axis,ref,pos)
 % @param_in: position or distance, depending on argument ref,
 % specified in microns (native unit of the ANP101)
 axis = (...
-      1 * strcmpi(axis,'z')...
+    1 * strcmpi(axis,'z')...
     + 2 * strcmpi(axis,'y')...
     + 3 * strcmpi(axis,'x')...
     ) - 1;
@@ -104,10 +113,10 @@ end
 function val = getANC350(handle,cmd,varargin)
 if strcmpi(cmd,'Position')
     axis = (...
-      1 * strcmpi(varargin{1},'z')...
-    + 2 * strcmpi(varargin{1},'y')...
-    + 3 * strcmpi(varargin{1},'x')...
-    ) - 1;
+        1 * strcmpi(varargin{1},'z')...
+        + 2 * strcmpi(varargin{1},'y')...
+        + 3 * strcmpi(varargin{1},'x')...
+        ) - 1;
     val = libpointer('int32Ptr', -2^16);
     callANC350('PositionerGetPosition',handle,axis,val);
     val = val.Value / 1000;
@@ -118,15 +127,10 @@ end
 function loadParamFile(handle,path)
 % load file for each axis, preconfigured such that 0==z, 1==y,
 % 2==x
-callANC350(self,'PositionerLoad',handle,0,...
+callANC350('PositionerLoad',handle,0,...
     [path 'ANPz101res.aps']);
-callANC350(self,'PositionerLoad',handle,1,...
+callANC350('PositionerLoad',handle,1,...
     [path 'ANPx101res.aps']);
-callANC350(self,'PositionerLoad',handle,2,...
+callANC350('PositionerLoad',handle,2,...
     [path 'ANPx101res.aps']);
 end
-
-end
-
-        
-        
