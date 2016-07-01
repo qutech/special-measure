@@ -77,7 +77,7 @@ end
 
 if strfind(cntrl, 'arm')
     if strfind(cntrl,'end') % bad hack, need to fix this
-      scan.loops(loop).prefn(end).fn = @smatrigfn;
+      scan.loops(loop).prefn(end+1).fn = @smatrigfn;
       scan.loops(loop).prefn(end).args = {getic, 4};  
     else
       scan.loops(loop).prefn(1).fn = @smatrigfn;

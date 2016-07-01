@@ -172,7 +172,7 @@ if nargin >= 2 && filename(2)~=':'
     end
     
     if all(filename ~= '/')
-        filename = sprintf('sm_%s.mat', filename);
+        filename = sprintf('%s.mat', filename);
     end
     
     str = '';
@@ -184,7 +184,7 @@ if nargin >= 2 && filename(2)~=':'
                 case 'yes'
                     break;
                 case 'no'
-                    filename = sprintf('sm_%s.mat', input('Enter new name:', 's'));
+                    filename = sprintf('%s.mat', input('Enter new name:', 's'));
                     break
             end
         end

@@ -1,4 +1,4 @@
-function [val, rate] = smcNIDAQmx(ico, val, rate)
+function [val, rate] = smcNIPCIe6363(ico, val, rate)
 % general note: outputs will be deprecated by this driver; it works out
 % best to implement outputs as virtual instruments for the respective task
 % you want to accomplish; this gets rid of a lot of headaches when
@@ -21,8 +21,7 @@ switch ico(3)
                 
                 while (smdata.inst(ico(1)).data.input.IsRunning && ...
                         ~smdata.inst(ico(1)).data.input.IsDone)
-%                     smdata.inst(ico(1)).data.input.wait;
-                    drawnow();
+                    smdata.inst(ico(1)).data.input.wait;
                 end
                 
                 if (nsamp > 1 || downsamp > 1) %buffered readout
@@ -124,7 +123,7 @@ switch ico(3)
                 @(src, event) outputData(ico(1), event.Data)...
                 );
         
-        smdata.inst(ico(1)).datadim(ico(2), 1) = val;
+        smdata.inst(ico(1)).datadim(:, 1) = val;
         
     case 6 % initialize
        for dev = daq.getDevices

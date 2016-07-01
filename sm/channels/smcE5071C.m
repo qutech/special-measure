@@ -268,7 +268,7 @@ switch ico(3)   % which driver function to perform,...
 %       fprintf(smdata.inst(ico(1)).data.inst, ':FORM:DATA ASC'); 
 
 %       set single sweep on BUS trigger
-        fprintf(smdata.inst(ico(1)).data.inst, ':TRIG:SEQ:SOUR BUS');
+%         fprintf(smdata.inst(ico(1)).data.inst, ':TRIG:SEQ:SOUR BUS');
 %       fprintf(smdata.inst(ico(1)).data.inst, ':TRIG::EXT:DEL');        % can set a trig delay
         
         %set lin sweep
