@@ -550,6 +550,9 @@ for i = 1:totpoints
                 val2 = trafocall(scandef(j).trafofn, x2, smdata.chanvals);
 
                 % compute ramp rate for all steps.
+								% bug: subtracting the first and last point is only correct
+								% for a linear trafofn. the expression below calculates the
+								% average ramp rate.
                 ramprate{j} = abs((val2(1:nsetchan(j))-val(1:nsetchan(j))))'...
                     ./(scandef(j).ramptime * (scandef(j).npoints-1));
 
