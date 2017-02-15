@@ -650,9 +650,10 @@ for i = 1:totpoints
             else                
                 set(disph(k), 'ydata', subsref(data{dc}, s2));
             end
-            drawnow;
+%             drawnow; %TODO: check if this is valid
 
         end
+        drawnow;
 
         if j == scan.saveloop(1) && ~mod(count(j), scan.saveloop(2)) && nargin >= 2
             save(filename, '-append', 'data');
