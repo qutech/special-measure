@@ -380,11 +380,11 @@ if ~ishandle(figurenumber);
     set(figurenumber, 'pos', [10, 10, 800, 400]);
 else
     figure(figurenumber);
-    if isfield(scan,'fighold') && scan.fighold == 1
+     if isfield(scan,'fighold') && scan.fighold == 1
        hold on
-    else
-       clf;
-    end
+     else
+      clf;
+     end
 end
 
 
@@ -406,11 +406,11 @@ for i = 1:length(disp)
     % modify if reducing data before plotting
     
     % use scan.fighold = 1 to add to previous plot
-    if isfield(scan,'fighold') && scan.fighold == 1
-        hold on;
-    else
-        hold off;
-    end
+     if isfield(scan,'fighold') && scan.fighold == 1
+       hold on
+     else
+      hold off;
+     end
     
     s.subs = num2cell(ones(1, nloops - dataloop(dc) + 1 + ndim(dc)));
     [s.subs{end-disp(i).dim+1:end}] = deal(':');
