@@ -6,7 +6,7 @@ switch ico(3)
     case 0
         switch ico(2)
             case {1,2,3} % setZ/setY/setX
-                val = subsref(smdata.inst(ico(1)).data.inst.getCurrentOutput(), ...
+                val = subsref(smdata.inst(ico(1)).data.getCurrentOutput(), ...
                     struct('type','()','subs',{{ico(2)}}));
                 
         end
@@ -14,19 +14,18 @@ switch ico(3)
     case 1
         switch ico(2)
             case {1,2,3} % linrampZ/linrampY/linrampX
-                curr = smdata.inst(ico(1)).data.inst.getCurrentOutput();
+                curr = smdata.inst(ico(1)).data.getCurrentOutput();
                 curr(ico(2)) = val;
                 if nargin > 3
-                    smdata.inst(ico(1)).data.inst.travelXYZ(curr,rate,varargin{1});
+                    smdata.inst(ico(1)).data.travelXYZ(curr,rate,varargin{1});
                 else
-                    smdata.inst(ico(1)).data.inst.travelXYZ(curr,rate);
+                    smdata.inst(ico(1)).data.travelXYZ(curr,rate);
                 end
                 val = 0;
         end
         
     case 6
-        smdata.inst(ico(1)).data.inst = myattoscanner();
-        smdata.inst(ico(1)).data.inst.initNiSession();
+        smdata.inst(ico(1)).data.initNiSession();
                         
     otherwise
         error('Operation not supported!')

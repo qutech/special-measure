@@ -1,9 +1,9 @@
 function [val, rate] = smcNIPCIe6363(ico, val, rate)
-% general note: outputs will be deprecated by this driver; it works out
-% best to implement outputs as virtual instruments for the respective task
+% general note: outputs will be deprecated by this driver; it works best
+% to implement outputs as virtual instruments for the respective task
 % you want to accomplish; this gets rid of a lot of headaches when
 % configuring, updating and syncing the nidaq's state; as of now this
-% control function will be rewritten as a pure acquisition instrument
+% control function will be used as a pure acquisition instrument
 global smdata
 % little workaround because of the session interface
 wrapper = @(varargin) varargin;
@@ -99,7 +99,7 @@ switch ico(3)
 %         end
         
         smdata.inst(ico(1)).data.downsamp = ...
-            ceil(smdata.inst(ico(1)).data.input.Rate / rate);
+            floor(smdata.inst(ico(1)).data.input.Rate / rate);
         rate = smdata.inst(ico(1)).data.input.Rate / smdata.inst(ico(1)).data.downsamp;
         
         if smdata.inst(ico(1)).data.downsamp == 0
