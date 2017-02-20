@@ -22,12 +22,7 @@ switch ic(2) % Channel
                 npts = smdata.inst(ic(1)).datadim(ic(2), 1);
                 while 1
                     navail = query(smdata.inst(ic(1)).data.inst, 'SPTS?', '%s\n', '%d');
-                    if navail >= npts + smdata.inst(ic(1)).data.currsamp;
-                        break;
-                    else
-                        pause(0.8 * (npts + smdata.inst(ic(1)).data.currsamp - navail) ...
-                    
-					if navail >= npts + smdata.inst(ic(1)).data.currsamp(ic(2)-14);
+                    if navail >= npts + smdata.inst(ic(1)).data.currsamp(ic(2)-14);
                         break;
                     else
                         pause(0.8 * (npts + smdata.inst(ic(1)).data.currsamp(ic(2)-14) - navail) ...

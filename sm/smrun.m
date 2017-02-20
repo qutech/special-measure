@@ -380,11 +380,11 @@ if ~ishandle(figurenumber);
     set(figurenumber, 'pos', [10, 10, 800, 400]);
 else
     figure(figurenumber);
-    if isfield(scan,'fighold') && scan.fighold == 1
+     if isfield(scan,'fighold') && scan.fighold == 1
        hold on
-    else
-       clf;
-    end
+     else
+      clf;
+     end
 end
 
 
@@ -406,11 +406,11 @@ for i = 1:length(disp)
     % modify if reducing data before plotting
     
     % use scan.fighold = 1 to add to previous plot
-    if isfield(scan,'fighold') && scan.fighold == 1
-        hold on;
-    else
-        hold off;
-    end
+     if isfield(scan,'fighold') && scan.fighold == 1
+       hold on
+     else
+      hold off;
+     end
     
     s.subs = num2cell(ones(1, nloops - dataloop(dc) + 1 + ndim(dc)));
     [s.subs{end-disp(i).dim+1:end}] = deal(':');
@@ -553,6 +553,9 @@ for i = 1:totpoints
                 val2 = trafocall(scandef(j).trafofn, x2, smdata.chanvals);
 
                 % compute ramp rate for all steps.
+								% bug: subtracting the first and last point is only correct
+								% for a linear trafofn. the expression below calculates the
+								% average ramp rate.
                 ramprate{j} = abs((val2(1:nsetchan(j))-val(1:nsetchan(j))))'...
                     ./(scandef(j).ramptime * (scandef(j).npoints-1));
 
@@ -650,9 +653,10 @@ for i = 1:totpoints
             else                
                 set(disph(k), 'ydata', subsref(data{dc}, s2));
             end
-            drawnow;
+%             drawnow; %TODO: check if this is valid
 
         end
+        drawnow;
 
         if j == scan.saveloop(1) && ~mod(count(j), scan.saveloop(2)) && nargin >= 2
             save(filename, '-append', 'data');
