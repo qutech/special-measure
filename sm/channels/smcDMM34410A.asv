@@ -1,5 +1,6 @@
-function [val, rate] = smcdmm(ico, val, rate)
-% driver for Agilent DMMs with support for buffered readout.
+function [val, rate] = smcDMM34410A(ico, val, rate)
+% driver for Agilent/Keysight DMMs with support for buffered readout,
+% software and hardwar trigg
 % mainly configured for voltage readings; needs small additions here and
 % there for other modes
 % for use with the 34401A the commands need to be changed slightly. Some for the 34410A optional
@@ -43,8 +44,7 @@ switch ico(2) % channel
                 % the 34401A cannot measure as fast, only 0.02
                 % MIN = 0.006 PLC, 
                 % MAX = 100 PLC
-                bNplc = isfield(smdata.inst(ico(1)).data, 'nplc') && ...
-                     ~isempty(smdata.inst(ico(1)).data.nplc);
+                bNplc = ~isempty(smdata.inst(ico(1)).data.nplc);
                 if bNplc
                     nplc = smdata.inst(ico(1)).data.nplc;
                     fprintf(smdata.inst(ico(1)).data.inst, 'VOLT:NPLC %f', nplc);
@@ -54,8 +54,7 @@ switch ico(2) % channel
                 % possible apertures with the 34410A
                 % ~100 µs to ~1 s (with ~20 µs resolution).
                 % MIN = ~100 µs, MAX = ~1 s
-                bAper = isfield(smdata.inst(ico(1)).data, 'aper') && ...
-                     ~isempty(smdata.inst(ico(1)).data.aper);
+                bAper = ~isempty(smdata.inst(ico(1)).data.aper);
                 if bAper
                     aper = smdata.inst(ico(1)).data.aper;
                     fprintf(smdata.inst(ico(1)).data.inst, 'VOLT:APER:ENAB ON');
@@ -72,7 +71,7 @@ switch ico(2) % channel
 								% (number per line cycle) or aper (integration time) has
 								% been set. From this, the maximum sampling rate is
 								% determined.
-								maxrate = 1/query(ico, 'SAMP:TIM? MIN', '%s', '%f');
+								maxrate = 1/query(smdata.inst(ico(1)).data.inst, 'SAMP:TIM? MIN', '%s', '%f');
 
                 % set measurement type to be with timed intervals
                 fprintf(smdata.inst(ico(1)).data.inst, 'SAMP:SOUR TIM');
@@ -80,18 +79,30 @@ switch ico(2) % channel
                 % actual maxrate is approx. a factor 2 slower.
                 if rate > maxrate
                     rate = maxrate;
-                    warning('Rate set to maxrate = %g 1/s', rate);
+                    warning('Rate set to maxrate = %g Hz', rate);
                 end
                 
-                rmptime = 1/rate
+                rmptime = 1/rate;
+								
                 % sets the timer interval.
                 fprintf(smdata.inst(ico(1)).data.inst, 'SAMP:TIM %f', rmptime);
-                fprintf(smdata.inst(ico(1)).data.inst, 'TRIG:DEL 0.0');
                 
-                % hardcoded for 34410A
+								
+                %trigger 
+                fprintf(smdata.inst(ico(1)).data.inst, 'TRIG:COUN %i', 1);
+								if ~isempty(smdata.inst(ico(1)).data.htrig) && smdata.inst(ico(1)).data.htrig == 1
+									fprintf(smdata.inst(ico(1)).data.inst, 'TRIG:SOUR EXT') %hardwartrigger
+									fprintf(smdata.inst(ico(1)).data.inst, 'TRIG:DEL:AUTO ON');
+									fprintf(smdata.inst(ico(1)).data.inst, 'TRIG:SLOP POS');
+								else
+									fprintf(smdata.inst(ico(1)).data.inst, 'TRIG:SOUR BUS'); %softwaretrigger
+									fprintf(smdata.inst(ico(1)).data.inst, 'TRIG:DEL 0.0');
+								end
+                
+                % Buffersize (# of readings) hardcoded for 34410A
                 % for 34401A this value would be 500
                 if val > 50000
-                    error('More than allowed number of samples requested. Correct and try again!\n');
+                    error('More than allowed number of samples = 50000 requested. Correct and try again!\n');
                 end
                 fprintf(smdata.inst(ico(1)).data.inst, 'TRIG:SOUR BUS');
                 fprintf(smdata.inst(ico(1)).data.inst, 'TRIG:COUN %i', 1);
