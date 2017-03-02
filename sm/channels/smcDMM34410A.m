@@ -105,8 +105,6 @@ function [val, rate] = smcDMM34410A(ico, val, rate)
 					if val > 50000
 						error('More than allowed number of samples = 50000 requested. Correct and try again!\n');
 					end
-					fprintf(smdata.inst(ico(1)).data.inst, 'TRIG:SOUR BUS');
-					fprintf(smdata.inst(ico(1)).data.inst, 'TRIG:COUN %i', 1);
 					fprintf(smdata.inst(ico(1)).data.inst, 'SAMP:COUN %d', val);
 					smdata.inst(ico(1)).datadim(2,1) = val;
 					
