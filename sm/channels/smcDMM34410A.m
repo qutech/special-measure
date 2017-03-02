@@ -32,8 +32,11 @@ switch ico(2) % channel
             case 5 % configure instrument                    
                 % set range
                 fprintf(smdata.inst(ico(1)).data.inst, 'SENS:VOLT:RANG:AUTO 0');
-                fprintf(smdata.inst(ico(1)).data.inst, 'SENS:VOLT:RANG %i',...
-                    smdata.inst(ico(1)).data.vrng);
+								
+								if ~isempty(smdata.inst(ico(1)).data.vrng)
+									fprintf(smdata.inst(ico(1)).data.inst, 'SENS:VOLT:RANG %i',...
+										smdata.inst(ico(1)).data.vrng);
+								end
 
                 % possible nplc with the 34410A
                 % {0.006|0.02|0.06|0.2|1|2|10|100}
@@ -46,8 +49,6 @@ switch ico(2) % channel
                     nplc = smdata.inst(ico(1)).data.nplc;
                     fprintf(smdata.inst(ico(1)).data.inst, 'VOLT:NPLC %f', nplc);
                     fprintf(smdata.inst(ico(1)).data.inst, 'CURR:NPLC %f', nplc);
-                    maxrate = ...
-                        50/str2double(query(smdata.inst(ico(1)).data.inst, 'VOLT:NPLC?'));
                 end
                 
                 % possible apertures with the 34410A
@@ -61,13 +62,17 @@ switch ico(2) % channel
                     fprintf(smdata.inst(ico(1)).data.inst, 'CURR:APER:ENAB ON');
                     fprintf(smdata.inst(ico(1)).data.inst, 'VOLT:APER %f', aper);
                     fprintf(smdata.inst(ico(1)).data.inst, 'CURR:APER %f', aper);
-                    maxrate = ...
-                        1*str2double(query(smdata.inst(ico(1)).data.inst, 'VOLT:APER?'));
                 end
                 
                 if bAper && bNplc
                     warning('Both aperture and nplc are set. Took aperture for determination of integration time.')
-                end
+								end
+								
+								% Automatically get minimum sampling interval after nplc
+								% (number per line cycle) or aper (integration time) has
+								% been set. From this, the maximum sampling rate is
+								% determined.
+								maxrate = 1/query(smdata.inst(ico(1)).data.inst, 'SAMP:TIM? MIN', '%s', '%f');
 
                 % set measurement type to be with timed intervals
                 fprintf(smdata.inst(ico(1)).data.inst, 'SAMP:SOUR TIM');
@@ -75,10 +80,10 @@ switch ico(2) % channel
                 % actual maxrate is approx. a factor 2 slower.
                 if rate > maxrate
                     rate = maxrate;
-                    warning('Rate set to maxrate.')
+                    warning('Rate set to maxrate = %g Hz', rate);
                 end
                 
-                rmptime = 1/rate
+                rmptime = 1/rate;
                 % sets the timer interval.
                 fprintf(smdata.inst(ico(1)).data.inst, 'SAMP:TIM %f', rmptime);
                 fprintf(smdata.inst(ico(1)).data.inst, 'TRIG:DEL 0.0');
