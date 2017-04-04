@@ -118,6 +118,23 @@ switch ic(2) % Channel
                 
         end
         
+    case 11
+        switch ic(3)
+            case 0 % get
+                val = query(smdata.inst(ic(1)).data.inst, 'OUTP1:STAT?', '%s\n', '%f');
+            case 1 % set
+                fprintf(smdata.inst(ic(1)).data.inst, 'OUTP1:STAT %f', val);
+                
+        end
+    case 12
+        switch ic(3)
+            case 0 % get
+                val = query(smdata.inst(ic(1)).data.inst, 'OUTP2:STAT?', '%s\n', '%f');
+            case 1 % set
+                fprintf(smdata.inst(ic(1)).data.inst, 'OUTP2:STAT %f', val);
+                
+        end
+        
     otherwise 
         error('Operation not supported');
 end
