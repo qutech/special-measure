@@ -38,7 +38,10 @@ switch ico(3)
                     val = val(ind);
                 end
 %                 disp('fetchBuffer')
-
+                
+                %  release resources to avoid clashing of different session
+                smdata.inst(ico(1)).data.input.release();
+                
             otherwise
                 error('Channel not (yet?) configured for readout!')            
         end
@@ -57,21 +60,6 @@ switch ico(3)
     case 4 %Arm
         switch ico(2)
             case num2cell(1:32) %analog inputs
-%                 if ~isempty(smdata.inst(ico(1)).data.trigIn)
-%                     try
-%                         smdata.inst(ico(1)).data.input.addTriggerConnection(...
-%                             'external',...
-%                             [smdata.inst(ico(1)).data.id '/' smdata.inst(ico(1)).data.trigIn],...
-%                             'StartTrigger');
-%                     catch err
-%                         doThrow = any( [ ~strfind(err.message, 'A StartTrigger connection already exists between'),...
-%                             ~strfind(err.message, 'Attempt to reference field of non-structure array.') ] );
-%                         if doThrow
-%                             rethrow(err);
-%                         end
-%                     end
-%                 end
-                
                 if ~smdata.inst(ico(1)).data.input.IsRunning
                     smdata.inst(ico(1)).data.input.prepare();
                     smdata.inst(ico(1)).data.input.startBackground();
@@ -83,21 +71,6 @@ switch ico(3)
         end
            
     case 5 %configure
-%         ch = strtrim (smdata.inst(ico(1)).channels(ico(2),:) );
-        %Add channel
-%         DEPRECATED: use interface functions as configfns instead
-%         try smdata.inst(ico(1)).data.input.addAnalogInputChannel(...
-%                 smdata.inst(ico(1)).data.id,...
-%                 ch,...
-%                 'Voltage'...
-%                 );
-%         catch err
-%             errStr = 'NI: The channel ''ai([0-9]|([1-2][0-9])|(3[01]))'' cannot be added to the session because it has been added previously.';
-%             if ~regexp (err.message, errStr, 'ONCE')
-%                 rethrow(err);
-%             end
-%         end
-        
         smdata.inst(ico(1)).data.downsamp = ...
             floor(smdata.inst(ico(1)).data.input.Rate / rate);
         rate = smdata.inst(ico(1)).data.input.Rate / smdata.inst(ico(1)).data.downsamp;
@@ -130,7 +103,7 @@ switch ico(3)
             if strcmp (dev.Description, 'National Instruments PCIe-6363')
                 smdata.inst(ico(1)).data.id      = dev.ID;
                 smdata.inst(ico(1)).data.input   = daq.createSession('ni');
-                disp('Found NI PCIe-6363!')
+%                 disp('Found NI PCIe-6363!')
             end
        end
         
