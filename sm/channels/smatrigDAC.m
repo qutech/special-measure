@@ -1,6 +1,6 @@
-function smatrigDAC(daqs)
+function smatrigDAC(ic) %set trigger for ramp channels
 
-smcDecaDAC4([daqs 1], 0); % trigger reset 
-smcDecaDAC4([daqs 1], 1); % default trigger level in sm_setups.common.AlazarDefaultSettings 0.75V
+smcDecaDAC4([ic 1], 0, Inf); % trigger reset 
+smcDecaDAC4([ic 1], 5, Inf); % default trigger level in sm_setups.common.AlazarDefaultSettings 0.75*5V
 
 %fprintf(smdata.inst(tds).data.inst, 'TRIG FORCE');
