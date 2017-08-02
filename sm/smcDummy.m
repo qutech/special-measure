@@ -24,6 +24,7 @@ switch ico(3)
 		val = smdata.inst(ico(1)).data.inst.val(ico(2));
 	case 1
 		smdata.inst(ico(1)).data.inst.val(ico(2)) = val;
+        val = 0;
 	otherwise
 		error('Operation not supported');
 end
