@@ -139,7 +139,7 @@ switch ico(3)
             if strcmp (dev.Description, 'National Instruments PCI-6713')
                 smdata.inst(ico(1)).data.id      = dev.ID;
                 smdata.inst(ico(1)).data.output  = daq.createSession('ni');
-                disp('Found NI PCI-6713!')
+%                 disp('Found NI PCI-6713!')
             end
         end
         
