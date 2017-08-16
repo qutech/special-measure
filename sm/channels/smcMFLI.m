@@ -73,7 +73,13 @@ switch ico(3) % mode
             case 6%ref amp
                 val=ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/sigouts/0/amplitudes/' smdata.inst(ico(1)).data.inst.out_mixer_c]);            
             case 7 % buff V
+                npts = smdata.inst(ic(1)).datadim(ico(2), 1);
+                val = smdata.inst(ico(1)).data.inst.device.trigger.last_result;
+                smdata.inst(ic(1)).data.currsamp(1) =  smdata.inst(ic(1)).data.currsamp(1) + npts;
             case 8 % buff I
+                npts = smdata.inst(ic(1)).datadim(ico(2), 1);
+                val = smdata.inst(ico(1)).data.inst.device.trigger.last_result;
+                smdata.inst(ic(1)).data.currsamp(2) =  smdata.inst(ic(1)).data.currsamp(2) + npts;
         end
         
     case 1 % write
@@ -95,35 +101,40 @@ switch ico(3) % mode
         assert(smdata.inst(ico(1)).data.inst.device.trigger.armed);
         ziDAQ('trigger',smdata.inst(ico(1)).data.inst.device.trigger.handle);
         pause(5); % use query here?
+        
         res=ziDAQ('read',smdata.inst(ico(1)).data.inst.device.trigger.handle);
+        
         smdata.inst(ico(1)).data.inst.device.trigger.last_result=...
-            res.dev3338.demods.sample{1};
+            eval(['res.' smdata.inst(ico(1)).data.inst.device '.demods.sample{1}']);
         ziDAQ('unsubscribe', smdata.inst(ico(1)).data.inst.device.trigger.handle,...
-            '/dev3338/demods/0/sample');
+            ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/sample']);
         ziDAQ('clear',smdata.inst(ico(1)).data.inst.device.trigger.handle);
         smdata.inst(ico(1)).data.inst.device.trigger.armed=0;
         
     case 5 % arm
-        smdata.inst(ico(1)).data.inst.device.trigger.demod_rate=100; %check for possible rates supported by Lock-In 100 -> 104.6
-        smdata.inst(ico(1)).data.inst.device.trigger.time_constant=0.001;
+        smdata.inst(ico(1)).data.inst.device.trigger.demod_rate=rate; %check for possible rates supported by Lock-In 100 -> 104.6  
         smdata.inst(ico(1)).data.inst.device.trigger.trigger_count=1;
         smdata.inst(ico(1)).data.inst.device.trigger.trigger_delay=0;
         smdata.inst(ico(1)).data.inst.device.trigger.trigger_duration=1;
         
-        ziDAQ('setDouble', '/dev3338/demods/0/rate', ...
+        ziDAQ('setDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/rate'], ...
             smdata.inst(ico(1)).data.inst.device.trigger.demod_rate);
         
         
         ziDAQ('unsubscribe','*');
+        
+        time_constant = ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/timeconstant']);
+        
         pause(10*time_constant);
         h=ziDAQ('record');
-        ziDAQ('setDouble', '/dev3338/demods/0/rate', ...
+        ziDAQ('setDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/rate'], ...
             smdata.inst(ico(1)).data.inst.device.trigger.demod_rate);
-        ziDAQ('set', h, 'trigger/device', 'dev3338');
+        
+        ziDAQ('set', h, 'trigger/device', smdata.inst(ico(1)).data.inst.device);
         ziDAQ('set', h, 'trigger/0/count', ...
             smdata.inst(ico(1)).data.inst.device.trigger.trigger_count);
         
-        ziDAQ('set', h, 'trigger/0/type', 2); %seems like a hack, check for potential misfires
+        ziDAQ('set', h, 'trigger/0/type', 6); %seems like a hack, check for potential misfires
         
         %triggernode = '/dev3338/demods/0/sample.dio';
         %ziDAQ('set', h, 'trigger/0/triggernode', triggernode);
@@ -140,10 +151,17 @@ switch ico(3) % mode
         ziDAQ('set', h, 'trigger/0/holdoff/time', 0.1)
         ziDAQ('set', h, 'trigger/0/holdoff/count', 0)
         
-        ziDAQ('subscribe',h,'/dev3338/demods/0/sample');
+        ziDAQ('subscribe',h,['/' smdata.inst(ico(1)).data.inst.device '/demods/0/sample']);
         
         ziDAQ('execute',h);  %arm
         smdata.inst(ico(1)).data.inst.device.trigger.armed=1;
+        
+        %copie from SR830 driver 
+        smdata.inst(ic(1)).data.currsamp = [0 0];
+        
+        smdata.inst(ic(1)).data.sampint = 1/rate;
+        smdata.inst(ic(1)).datadim(7:8, 1) = val;
+        
     otherwise
         error('Operation not supported.');
         
