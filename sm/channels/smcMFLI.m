@@ -39,7 +39,7 @@ switch ico(3) % mode
                 
                 % Create an API session; connect to the correct Data Server for the device.
                 [device, props] = ziCreateAPISession(device_id, apilevel);
-                smdata.inst(ico(1)).data.inst.device = device; %????
+                smdata.inst(ico(1)).data.inst.device = device; 
                 smdata.inst(ico(1)).data.inst.props = props;
                 out_c = '0'; % signal output channel
                 % Get the value of the instrument's default Signal Output mixer channel.
@@ -76,6 +76,13 @@ switch ico(3) % mode
                 val=ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/sigouts/0/amplitudes/' smdata.inst(ico(1)).data.inst.out_mixer_c]);
             case 7 % buff R
                 npts = smdata.inst(ico(1)).datadim(ico(2), 1);
+                
+                %pause(smdata.inst(ico(1)).data.inst.trigger.trigger_duration);                
+                res=ziDAQ('read',smdata.inst(ico(1)).data.inst.trigger.handle);
+              
+                smdata.inst(ico(1)).data.inst.trigger.last_result=...
+                    eval(['res.' smdata.inst(ico(1)).data.inst.device '.demods.sample{end}']);
+                
                 val = sqrt(smdata.inst(ico(1)).data.inst.trigger.last_result.x.^2+...
                     smdata.inst(ico(1)).data.inst.trigger.last_result.y.^2);
                 val=val(1:npts);
@@ -122,19 +129,6 @@ switch ico(3) % mode
     case 4 % trigger programmed handle
         assert(logical(smdata.inst(ico(1)).data.inst.trigger.armed));
         ziDAQ('trigger',smdata.inst(ico(1)).data.inst.trigger.handle);
-        %pause(5*smdata.inst(ico(1)).data.inst.trigger.trigger_duration);
-        
-        found=0;
-        while ~found
-        %pause(smdata.inst(ico(1)).data.inst.trigger.trigger_duration);
-        pause(.5);
-        res=ziDAQ('read',smdata.inst(ico(1)).data.inst.trigger.handle);
-        found=~isempty(eval(['res.' smdata.inst(ico(1)).data.inst.device '.demods.sample']));      
-        end
-        
-        smdata.inst(ico(1)).data.inst.trigger.last_result=...
-            eval(['res.' smdata.inst(ico(1)).data.inst.device '.demods.sample{end}']);
-        
              
         
     case 5 % arm
@@ -222,7 +216,7 @@ switch ico(3) % mode
         smdata.inst(ico(1)).data.inst.trigger.armed=1;
         
         %copie from SR830 driver
-        smdata.inst(ico(1)).data.currsamp = [0 0];
+        smdata.inst(ico(1)).data.currsamp = [0 0 0 0];
         
         smdata.inst(ico(1)).data.sampint = 1/rate;
         
