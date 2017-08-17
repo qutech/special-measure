@@ -126,7 +126,8 @@ switch ico(3) % mode
         
         found=0;
         while ~found
-        pause(smdata.inst(ico(1)).data.inst.trigger.trigger_duration);
+        %pause(smdata.inst(ico(1)).data.inst.trigger.trigger_duration);
+        pause(.5);
         res=ziDAQ('read',smdata.inst(ico(1)).data.inst.trigger.handle);
         found=~isempty(eval(['res.' smdata.inst(ico(1)).data.inst.device '.demods.sample']));      
         end
@@ -157,6 +158,7 @@ switch ico(3) % mode
         % get closeset possible rate back
         rate=ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/rate'], ...
             smdata.inst(ico(1)).data.inst.trigger.demod_rate);
+        smdata.inst(ico(1)).data.inst.trigger.demod_rate=rate;
         
         
         smdata.inst(ico(1)).data.inst.trigger.trigger_duration=val/rate;
@@ -167,7 +169,9 @@ switch ico(3) % mode
             ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/timeconstant']);
         
         pause(10*smdata.inst(ico(1)).data.inst.trigger.time_constant);
+        
         h=ziDAQ('record');
+        
         smdata.inst(ico(1)).data.inst.trigger.handle=h;
         
         ziDAQ('set', h, 'trigger/device', smdata.inst(ico(1)).data.inst.device);
@@ -203,6 +207,7 @@ switch ico(3) % mode
             2*smdata.inst(ico(1)).data.inst.trigger.trigger_duration);
         ziDAQ('set', h, 'trigger/0/duration', ...
             smdata.inst(ico(1)).data.inst.trigger.trigger_duration);
+        
         ziDAQ('set', h, 'trigger/0/bitmask', 1)
         ziDAQ('set', h, 'trigger/0/bits', 1)
         ziDAQ('set', h, 'trigger/0/delay', ...
@@ -220,7 +225,8 @@ switch ico(3) % mode
         smdata.inst(ico(1)).data.currsamp = [0 0];
         
         smdata.inst(ico(1)).data.sampint = 1/rate;
-        smdata.inst(ico(1)).datadim(7:8, 1) = val;
+        
+        smdata.inst(ico(1)).datadim(7:10, 1) = val;
                
     otherwise
         error('Operation not supported.');
