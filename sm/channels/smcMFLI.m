@@ -93,7 +93,7 @@ switch ico(3) % mode
                 
             case 6 %amplitude
                 ziDAQ('setDouble', ['/' smdata.inst(ico(1)).data.inst.device '/sigouts/0/amplitudes/'...
-                    smdata.inst(ico(1)).data.inst.out_mixer_c], val);
+                    smdata.inst(ico(1)).data.inst.out_mixer_c], sqrt(2)*val);
             otherwise
                 error('Operation not supported.');
         end
