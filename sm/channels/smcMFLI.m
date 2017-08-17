@@ -1,9 +1,11 @@
 function [val, rate] = smcMFLI(ico, val, rate)
 
 % 1: X, 2: Y, 3: R, 4: Theta, 5: freq, 6: ref amplitude
-% 7: Buffered Read out V
-% 8: buffered Read Out I
-
+% 7: Buffered Read out R
+% 8: buffered Read Out phase
+%10: Buffered Read Out x
+%11: Time constant
+%
 global smdata;
 
 % Define some other helpful parameters.
@@ -93,6 +95,8 @@ switch ico(3) % mode
                 val = smdata.inst(ico(1)).data.inst.trigger.last_result.y;
                 val=val(1:npts);
                 smdata.inst(ico(1)).data.currsamp(2) =  smdata.inst(ico(1)).data.currsamp(2) + npts;
+            case 11
+                val = ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/timeconstant']);
         end
         
     case 1 % write
@@ -100,10 +104,15 @@ switch ico(3) % mode
             
             case 5 %frequency
                 ziDAQ('setDouble', ['/' smdata.inst(ico(1)).data.inst.device '/oscs/0/freq'], val); % [Hz]
-                
+                val=ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/oscs/0/freq']); 
             case 6 %amplitude
                 ziDAQ('setDouble', ['/' smdata.inst(ico(1)).data.inst.device '/sigouts/0/amplitudes/'...
                     smdata.inst(ico(1)).data.inst.out_mixer_c], sqrt(2)*val);
+                val=ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/sigouts/0/amplitudes/'...
+                    smdata.inst(ico(1)).data.inst.out_mixer_c]);
+            case 11 
+                ziDAQ('setDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/timeconstant'],val)
+                val = ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/timeconstant']);
             otherwise
                 error('Operation not supported.');
         end
