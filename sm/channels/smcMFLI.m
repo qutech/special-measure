@@ -83,6 +83,16 @@ switch ico(3) % mode
                 val = smdata.inst(ico(1)).data.inst.trigger.last_result.phase;
                 val=val(1:npts);
                 smdata.inst(ico(1)).data.currsamp(2) =  smdata.inst(ico(1)).data.currsamp(2) + npts;
+            case 9 % buff x
+                npts = smdata.inst(ico(1)).datadim(ico(2), 1);
+                val = smdata.inst(ico(1)).data.inst.trigger.last_result.x;
+                val=val(1:npts);
+                smdata.inst(ico(1)).data.currsamp(1) =  smdata.inst(ico(1)).data.currsamp(1) + npts;
+            case 10 % buff y
+                npts = smdata.inst(ico(1)).datadim(ico(2), 1);
+                val = smdata.inst(ico(1)).data.inst.trigger.last_result.y;
+                val=val(1:npts);
+                smdata.inst(ico(1)).data.currsamp(2) =  smdata.inst(ico(1)).data.currsamp(2) + npts;
         end
         
     case 1 % write
@@ -103,10 +113,15 @@ switch ico(3) % mode
     case 4 % trigger programmed handle
         assert(logical(smdata.inst(ico(1)).data.inst.trigger.armed));
         ziDAQ('trigger',smdata.inst(ico(1)).data.inst.trigger.handle);
-        pause(4*smdata.inst(ico(1)).data.inst.trigger.trigger_duration);
+        %pause(5*smdata.inst(ico(1)).data.inst.trigger.trigger_duration);
         
+        found=0;
+        while ~found
+        pause(smdata.inst(ico(1)).data.inst.trigger.trigger_duration);
         res=ziDAQ('read',smdata.inst(ico(1)).data.inst.trigger.handle);
-                     
+        found=~isempty(eval(['res.' smdata.inst(ico(1)).data.inst.device '.demods.sample']));      
+        end
+        
         smdata.inst(ico(1)).data.inst.trigger.last_result=...
             eval(['res.' smdata.inst(ico(1)).data.inst.device '.demods.sample{end}']);
         
