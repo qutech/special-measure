@@ -90,7 +90,7 @@ switch ico(3) % mode
                 [smdata.inst(ico(1)).data.inst.trigger.last_result,...
                     smdata.inst(ico(1)).data.inst.trigger.checkout]=get_buffered_data(smdata,ico);
                 
-                val = smdata.inst(ico(1)).data.inst.trigger.last_result.phase;
+                val = smdata.inst(ico(1)).data.inst.trigger.last_result.auxin0;
                 val=val(1:npts);
                 smdata.inst(ico(1)).data.currsamp(2) =  smdata.inst(ico(1)).data.currsamp(2) + npts;
             case 9 % buff x
@@ -133,19 +133,23 @@ switch ico(3) % mode
                 error('Operation not supported.');
         end
         
-    case 3 % query
+    case 3 % trigger
         
-    case 4 % trigger programmed handle
         if logical(smdata.inst(ico(1)).data.inst.trigger.armed)||smdata.inst(ico(1)).data.inst.trigger.checkout
         ziDAQ('trigger',smdata.inst(ico(1)).data.inst.trigger.handle);
         smdata.inst(ico(1)).data.inst.trigger.checkout=0;
         smdata.inst(ico(1)).data.inst.trigger.armed=0;
         end
-             
         
-    case 5 % arm
+    case 4 % arm
         
-        if ~logical(smdata.inst(ico(1)).data.inst.trigger.armed)
+        
+     
+        
+        
+    case 5 % config
+        
+        if ~isfield(smdata.inst(ico(1)).data.inst,'trigger')||~logical(smdata.inst(ico(1)).data.inst.trigger.armed)
             smdata.inst(ico(1)).data.inst.trigger.demod_rate=rate;
             smdata.inst(ico(1)).data.inst.trigger.trigger_count=1;
             smdata.inst(ico(1)).data.inst.trigger.trigger_delay=0;
