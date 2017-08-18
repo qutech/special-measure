@@ -4,23 +4,25 @@ function val = smcDecaDAC4(ic, val, rate)
 % see this driver for ExtTrig options
 global smdata;
 
-%  Ext Trig options 
+%  Ext Trig options ( set: smdata.inst(x).data.trigmode)
 % (empirically DecaDAC trigger on rising>1.84V or falling< 1.76V)
 %  all the ExtTrig options are over written by ico(3) = software trig (case 3)
 % 0 = update always 
 % 1/9 = undefined
 % 2 = update if Trig 1 low
 % 3 = update if Trig 2 low
-% 4 = update until rising edge of trig1
+% 4 = update until rising edge of trig1 and continue after falling edge
+% of trig1
 % 5 = update until rising edge of Trig 2
-% 6 = update until falling edge of Trig 1
+% 6 = update until falling edge of Trig 1 and continue after rising edge
+% of trig1 (tested 2017-05-31)
 % 7 = update until falling edge of Trig 2
 % 8 = update never (i.e. pause)
-% 10 = update if Trig 1 high
+% 10 = update if Trig 1 high tested(2017-05-31)
 % 11 = update if Trig 2 high
-% 12 = updtae after risign edge of Trig 1
-% 13 = update after rising edge of Trig 2
-% 14 = update after falling edge of Trig 1
+% 12 = updtae after rising edge of Trig 1 until falling edge (tested 2017-05-31)
+% 13 = update after rising edge of Trig 2 until falling edge
+% 14 = update after falling edge of Trig 1 until rising edge
 % 15 = update after falling edge of Trig 2
 
 if smdata.inst(ic(1)).channels(ic(2), :) == 'SCRIPT'
