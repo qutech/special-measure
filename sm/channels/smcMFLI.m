@@ -11,7 +11,11 @@ global smdata;
 % Define some other helpful parameters.
 % This Driver will for now only support one output (0), oscillator (0) and
 % one demodulator (0)
-device_id='dev3331';
+if ~isfield(smdata.inst(ico(1)).data.inst,'device')
+    device_id=smdata.inst(ico(1)).data.inst.device;
+else
+    device_id='dev3331';
+end
 apilevel=5;
 
 
@@ -39,7 +43,7 @@ switch ico(3) % mode
                 
                 % Create an API session; connect to the correct Data Server for the device.
                 [device, props] = ziCreateAPISession(device_id, apilevel);
-                smdata.inst(ico(1)).data.inst.device = device; 
+                
                 smdata.inst(ico(1)).data.inst.props = props;
                 out_c = '0'; % signal output channel
                 % Get the value of the instrument's default Signal Output mixer channel.
@@ -76,10 +80,10 @@ switch ico(3) % mode
                 val=ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/sigouts/0/amplitudes/' smdata.inst(ico(1)).data.inst.out_mixer_c]);
             case 7 % buff R
                 npts = smdata.inst(ico(1)).datadim(ico(2), 1);
-                             
+                
                 [smdata.inst(ico(1)).data.inst.trigger.last_result,...
                     smdata.inst(ico(1)).data.inst.trigger.checkout]=get_buffered_data(smdata,ico);
-                                      
+                
                 val = sqrt(smdata.inst(ico(1)).data.inst.trigger.last_result.x.^2+...
                     smdata.inst(ico(1)).data.inst.trigger.last_result.y.^2);
                 val=val(1:npts);
@@ -89,8 +93,10 @@ switch ico(3) % mode
                 
                 [smdata.inst(ico(1)).data.inst.trigger.last_result,...
                     smdata.inst(ico(1)).data.inst.trigger.checkout]=get_buffered_data(smdata,ico);
-                
-                val = smdata.inst(ico(1)).data.inst.trigger.last_result.auxin0;
+                % This is a neat hack for debugging! use auxin for
+                % monitoring!
+%                 val = smdata.inst(ico(1)).data.inst.trigger.last_result.auxin0;
+                val = smdata.inst(ico(1)).data.inst.trigger.last_result.phase;
                 val=val(1:npts);
                 smdata.inst(ico(1)).data.currsamp(2) =  smdata.inst(ico(1)).data.currsamp(2) + npts;
             case 9 % buff x
@@ -105,7 +111,7 @@ switch ico(3) % mode
             case 10 % buff y
                 npts = smdata.inst(ico(1)).datadim(ico(2), 1);
                 
-                 [smdata.inst(ico(1)).data.inst.trigger.last_result,...
+                [smdata.inst(ico(1)).data.inst.trigger.last_result,...
                     smdata.inst(ico(1)).data.inst.trigger.checkout]=get_buffered_data(smdata,ico);
                 
                 val = smdata.inst(ico(1)).data.inst.trigger.last_result.y;
@@ -120,13 +126,13 @@ switch ico(3) % mode
             
             case 5 %frequency
                 ziDAQ('setDouble', ['/' smdata.inst(ico(1)).data.inst.device '/oscs/0/freq'], val); % [Hz]
-                val=ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/oscs/0/freq']); 
+                val=ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/oscs/0/freq']);
             case 6 %amplitude
                 ziDAQ('setDouble', ['/' smdata.inst(ico(1)).data.inst.device '/sigouts/0/amplitudes/'...
                     smdata.inst(ico(1)).data.inst.out_mixer_c], sqrt(2)*val);
                 val=ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/sigouts/0/amplitudes/'...
                     smdata.inst(ico(1)).data.inst.out_mixer_c]);
-            case 11 
+            case 11
                 ziDAQ('setDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/timeconstant'],val)
                 val = ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/timeconstant']);
             otherwise
@@ -135,16 +141,18 @@ switch ico(3) % mode
         
     case 3 % trigger
         
-        if logical(smdata.inst(ico(1)).data.inst.trigger.armed)||smdata.inst(ico(1)).data.inst.trigger.checkout
-        ziDAQ('trigger',smdata.inst(ico(1)).data.inst.trigger.handle);
-        smdata.inst(ico(1)).data.inst.trigger.checkout=0;
-        smdata.inst(ico(1)).data.inst.trigger.armed=0;
+        if ~logical(smdata.inst(ico(1)).data.inst.trigger.triggered)||smdata.inst(ico(1)).data.inst.trigger.checkout
+            ziDAQ('trigger',smdata.inst(ico(1)).data.inst.trigger.handle);
+            smdata.inst(ico(1)).data.inst.trigger.checkout=0;
+            smdata.inst(ico(1)).data.inst.trigger.triggered=1;
         end
         
     case 4 % arm
         
+        smdata.inst(ico(1)).data.inst.trigger.armed=0;
+        smdata.inst(ico(1)).data.inst.trigger.triggered=0;
+        smdata.inst(ico(1)).data.inst.trigger.checkout=0;
         
-     
         
         
     case 5 % config
@@ -196,7 +204,7 @@ switch ico(3) % mode
             %     DIGITAL_TRIGGER = 2
             %     PULSE_TRIGGER = 3
             %     TRACKING_TRIGGER = 4
-            ziDAQ('set', h, 'trigger/0/type', 2); %seems like a hack, check for potential misfires
+            ziDAQ('set', h, 'trigger/0/type', 1); %seems like a hack, check for potential misfires
             %   triggernode, specify the triggernode to trigger on.
             %     SAMPLE.X = Demodulator X value
             %     SAMPLE.Y = Demodulator Y value
@@ -206,13 +214,15 @@ switch ico(3) % mode
             %     SAMPLE.AUXIN1 = Auxilliary input 2 value
             %     SAMPLE.DIO = Digital I/O value
             %   Here we use the device's DIO value which is included in a demodulator sample:
-            triggernode = ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/sample.dio'];
+            
+            triggernode = ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/sample.' smdata.inst(ico(1)).data.trigchannel];
             ziDAQ('set', h, 'trigger/0/triggernode', triggernode);
             %   edge:
             %     POS_EDGE = 1
             %     NEG_EDGE = 2
             %     BOTH_EDGE = 3
             ziDAQ('set', h, 'trigger/0/edge', 1)
+            ziDAQ('set', h, 'trigger/0/level', .2)
             % The size of the internal buffer used to store data, this should be larger
             % than trigger_duration.
             ziDAQ('set', h, 'trigger/buffersize', ...
@@ -220,12 +230,11 @@ switch ico(3) % mode
             ziDAQ('set', h, 'trigger/0/duration', ...
                 smdata.inst(ico(1)).data.inst.trigger.trigger_duration);
             
-            ziDAQ('set', h, 'trigger/0/bitmask', 1)
-            ziDAQ('set', h, 'trigger/0/bits', 1)
+         
             ziDAQ('set', h, 'trigger/0/delay', ...
                 smdata.inst(ico(1)).data.inst.trigger.trigger_delay)
             ziDAQ('set', h, 'trigger/0/retrigger', 0) % check if these are neccesary
-            ziDAQ('set', h, 'trigger/0/holdoff/time', 0.1)
+            ziDAQ('set', h, 'trigger/0/holdoff/time', 0.)
             ziDAQ('set', h, 'trigger/0/holdoff/count', 0)
             
             ziDAQ('subscribe',h,['/' smdata.inst(ico(1)).data.inst.device '/demods/0/sample']);
@@ -243,7 +252,7 @@ switch ico(3) % mode
         smdata.inst(ico(1)).data.sampint = 1/rate;
         
         smdata.inst(ico(1)).datadim(7:10, 1) = val;
-               
+        
     otherwise
         error('Operation not supported.');
         
@@ -253,21 +262,18 @@ end
 function [last_result, checkout]=get_buffered_data(smdata,ico)
 
 if ~smdata.inst(ico(1)).data.inst.trigger.checkout
-                    res=ziDAQ('read',smdata.inst(ico(1)).data.inst.trigger.handle);
-                    
-                    if ~isfield(res, smdata.inst(ico(1)).data.inst.device)
-                        res.(smdata.inst(ico(1)).data.inst.device).demods.sample=[];
-                    end
-                    
-                    while isempty(eval(['res.' smdata.inst(ico(1)).data.inst.device '.demods.sample']))
-                        pause(.1);
-                        temp=ziDAQ('read',smdata.inst(ico(1)).data.inst.trigger.handle);
-                        res.(smdata.inst(ico(1)).data.inst.device).demods.sample=...
-                            eval(['temp.' smdata.inst(ico(1)).data.inst.device '.demods.sample']);
-                    end
-                    last_result=...
-                        eval(['res.' smdata.inst(ico(1)).data.inst.device '.demods.sample{end}']);
-                    checkout=1;
+    res=ziDAQ('read',smdata.inst(ico(1)).data.inst.trigger.handle);
+      
+    while ~ziCheckPathInData(res, ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/sample'])
+        pause(.1);
+        temp=ziDAQ('read',smdata.inst(ico(1)).data.inst.trigger.handle);
+        res.(smdata.inst(ico(1)).data.inst.device).demods.sample=...
+            temp.(smdata.inst(ico(1)).data.inst.device).demods.sample;
+    end
+    
+    last_result=...
+        res.(smdata.inst(ico(1)).data.inst.device).demods.sample{end};
+    checkout=1;
 else
     checkout=smdata.inst(ico(1)).data.inst.trigger.checkout;
     last_result=smdata.inst(ico(1)).data.inst.trigger.last_result;
