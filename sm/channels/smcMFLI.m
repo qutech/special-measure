@@ -8,15 +8,6 @@ function [val, rate] = smcMFLI(ico, val, rate)
 %
 global smdata;
 
-% Define some other helpful parameters.
-% This Driver will for now only support one output (0), oscillator (0) and
-% one demodulator (0)
-if ~isfield(smdata.inst(ico(1)).data.inst,'device')
-    device_id=smdata.inst(ico(1)).data.inst.device;
-else
-    device_id='dev3331';
-end
-apilevel=5;
 
 
 switch ico(3) % mode
@@ -25,11 +16,14 @@ switch ico(3) % mode
             case 1 %init
                 clear ziDAQ;
                 
-                if ~exist('device_id', 'var')
-                    error(['No value for device_id specified. The first argument to the ' ...
-                        'example should be the device ID on which to run the example, ' ...
-                        'e.g. ''dev2006'' or ''uhf-dev2006''.'])
+                if isfield(smdata.inst(ico(1)).data,'device_name')
+                    device_id=smdata.inst(ico(1)).data.device_name;
+                else
+                    disp('Please create field <device_name> in inst.data')
+                    %device_id='dev3331';
+                    return
                 end
+                apilevel=5;               
                 
                 % Check the ziDAQ MEX (DLL) and Utility functions can be found in Matlab's path.
                 if ~(exist('ziDAQ') == 3) && ~(exist('ziCreateAPISession', 'file') == 2)
