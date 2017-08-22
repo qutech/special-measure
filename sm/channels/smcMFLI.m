@@ -36,13 +36,14 @@ switch ico(3) % mode
                 end
                 
                 % Create an API session; connect to the correct Data Server for the device.
-                [device, props] = ziCreateAPISession(device_id, apilevel);
+                [smdata.inst(ico(1)).data.inst.device, props] = ziCreateAPISession(device_id, apilevel);
                 
                 smdata.inst(ico(1)).data.inst.props = props;
-                out_c = '0'; % signal output channel
-                % Get the value of the instrument's default Signal Output mixer channel.
+                 smdata.inst(ico(1)).data.inst.Status='open';
+               
                 smdata.inst(ico(1)).data.inst.out_mixer_c = ...
-                    num2str(ziGetDefaultSigoutMixerChannel(props, str2num(out_c)));
+                    num2str(ziGetDefaultSigoutMixerChannel(props, 0));
+                
                 ziDAQ('sync');
                 
                 %Make all other important settings on device!
