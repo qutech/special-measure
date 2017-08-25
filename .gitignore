@@ -1,0 +1,12 @@
+# ignore emacs autosave files
+\~*
+# ignore matlab autosave files
+*.asv
+
+# ignore unused backup subdirectories.
+**bak/
+**new/
+
+# OS specific shell files
+Thumbs.db
+DS_Store
