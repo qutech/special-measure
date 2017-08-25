@@ -16,8 +16,11 @@ global smdata;
 
 % Open the library if needed.
 if ~libisloaded('hidapi')
-  p=strrep(which('smcLabBrick'),'smcLabBrick.m','labbrick') ;    
-  addpath(p);
+% third party DLLs of intruments will no longer be shipped within
+% special-measure. Please add the path containing your copy of the DLL
+% manually
+%   p=strrep(which('smcLabBrick'),'smcLabBrick.m','labbrick') ;    
+%   addpath(p);
   if ~lbLoadLibrary
       error('Unable to load hidapi');
   end
