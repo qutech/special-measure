@@ -24,7 +24,7 @@ if ~libisloaded('hidapi')
   if ~lbLoadLibrary
       error('Unable to load hidapi');
   end
-  rmpath(p);
+%   rmpath(p);
   smdata.inst(ic(1)).data.devhandle=[];
 end
 
@@ -182,4 +182,20 @@ function printFirstSerial(lb_manufacturer, lb_product)
    snmv=char(snmv(1:find(snmv == 0,1,'first')));
    fprintf('First attached device is a %s from %s, serial "%s"\n',pnmv,nmv,snmv);
    calllib('hidapi','hid_close',h);
+end
+
+function ret=lbLoadLibrary()
+% Load the lab brick driver library.  Return true on success.
+ret = true;
+if ~libisloaded('hidapi')
+    if strcmpi(computer('arch'), 'win64')
+        libname='hidapi_i64';
+    else
+        libname='hidapi_i32';
+    end
+    loadlibrary([libname '.dll'],[libname '.h'],'alias','hidapi');
+        
+    if ~libisloaded('hidapi')
+        ret=false;
+    end
 end
