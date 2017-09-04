@@ -199,3 +199,4 @@ if ~libisloaded('hidapi')
         ret=false;
     end
 end
+end
