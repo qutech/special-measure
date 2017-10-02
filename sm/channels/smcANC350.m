@@ -36,7 +36,7 @@ end
 switch ico(3)
     case 0
         switch ico(2)
-            case 1:3 % anc350 axis index starts at 0
+            case [{1},{2},{3}] % anc350 axis index starts at 0
                 val = libpointer('int32Ptr', -2^16);
                 callANC350('PositionerGetPosition',...
                     smdata.inst(ico(1)).data.devHandle,ico(2)-1,val);
@@ -45,7 +45,7 @@ switch ico(3)
         
     case 1
         switch ico(2)
-            case 1:3 % anc350 axis index starts at 0
+            case [{1},{2},{3}] % anc350 axis index starts at 0
                 pos = int32(val*1000);
                 callANC350('PositionerMoveAbsolute',...
                     smdata.inst(ico(1)).data.devHandle,ico(2)-1,pos);
