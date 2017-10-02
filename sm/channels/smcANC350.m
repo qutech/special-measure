@@ -8,7 +8,7 @@ if ~libisloaded('hvpositionerv2')
         libname='hvpositionerv2';
     end
     loadlibrary([libname '.dll'],[libname '.h'],'alias','hvpositionerv2');
-        
+
     posInfo = libstruct('PositionerInfo');
     numDevices = calllib('hvpositionerv2','PositionerCheck',posInfo);
     if numDevices < 1
@@ -22,39 +22,34 @@ if ~libisloaded('hvpositionerv2')
     smdata.inst(ico(1)).data.devHandle = devHandle.Value;
     
     if ~isempty(smdata.inst(ico(1)).data.paramFile)
-        loadParamFile(smdata.inst(ico(1)).data.devHandle,...
-            smdata.inst(ico(1)).data.paramFile);
+        % load file for each axis, preconfigured such that 0==z, 1==y,
+        % 2==x
+        callANC350('PositionerLoad',devHandle.Value,0,...
+            [path 'ANPz101res.aps']);
+        callANC350('PositionerLoad',devHandle.Value,1,...
+            [path 'ANPx101res.aps']);
+        callANC350('PositionerLoad',devHandle.Value,2,...
+            [path 'ANPx101res.aps']);
     end
 end
 
 switch ico(3)
     case 0
         switch ico(2)
-            case 1
-                val = getANC350(smdata.inst(ico(1)).data.devHandle,...
-                    'Position','x');
-                val = double(val);
-            case 2
-                val = getANC350(smdata.inst(ico(1)).data.devHandle,...
-                    'Position','y');
-                val = double(val);
-            case 3
-                val = getANC350(smdata.inst(ico(1)).data.devHandle,...
-                    'Position','z');
-                val = double(val);
+            case 1:3 % anc350 axis index starts at 0
+                val = libpointer('int32Ptr', -2^16);
+                callANC350('PositionerGetPosition',...
+                    smdata.inst(ico(1)).data.devHandle,ico(2)-1,val);
+                val = double(val.Value / 1000);
         end
         
     case 1
         switch ico(2)
-            case 1
-                moveANC350(smdata.inst(ico(1)).data.devHandle,'x',...
-                    'abs', val);
-            case 2
-                moveANC350(smdata.inst(ico(1)).data.devHandle,'y',...
-                    'abs', val);
-            case 3
-                moveANC350(smdata.inst(ico(1)).data.devHandle,'z',...
-                    'abs', val);
+            case 1:3 % anc350 axis index starts at 0
+                pos = int32(val*1000);
+                callANC350('PositionerMoveAbsolute',...
+                    smdata.inst(ico(1)).data.devHandle,ico(2)-1,pos);
+                
             otherwise
                 error('Operation not supported!')
         end
@@ -62,6 +57,7 @@ end
 end
 
 function retCode = callANC350(cmd,varargin)
+% return codes for ANC350, copied from hvpositionerv2.h
 % Rückgabewerte der Funktionen
 % #define NCB_Ok               0      Kein Fehler
 % #define NCB_Error            (-1)   Unbekannter/sonstiger Fehler
@@ -79,58 +75,11 @@ codes = {'NCB_TimeOut','NCB_NotConnected','NCB_DriverError','NCB_BootIgnored',..
     'NCB_FileNotFound','NCB_InvalidParam','NCB_DeviceLocked','NCB_NotSpecifiedParam'};
 if retCode == 0
     return;
-elseif retCode <= length(codes)
+elseif retCode <= length(codes) && retCode > 0
     error('Call to library returned with error code %s', codes{retCode})
-else
+elseif retCode == -1
     error('Call to library returned with error code NCB_Error')
-end
-end
-
-function moveANC350(handle,axis,ref,pos)
-% @param_in axis: specify either 'x', 'y', 'z'
-% @param_in ref: either 'abs' for absolute or 'rel' for relative
-% positioning
-% @param_in: position or distance, depending on argument ref,
-% specified in microns (native unit of the ANP101)
-axis = (...
-    1 * strcmpi(axis,'z')...
-    + 2 * strcmpi(axis,'y')...
-    + 3 * strcmpi(axis,'x')...
-    ) - 1;
-
-if strcmp(ref,'abs')
-    cmd = 'PositionerMoveAbsolute';
-elseif strcmp(ref,'rel')
-    cmd = 'PositionerMoveRelative';
 else
-    error('Invalid argument for input argument ''ref''')
+    error('Unknown return code')
 end
-
-pos = int32(pos*1000);
-callANC350(cmd,handle,axis,pos);
-end
-
-function val = getANC350(handle,cmd,varargin)
-if strcmpi(cmd,'Position')
-    axis = (...
-        1 * strcmpi(varargin{1},'z')...
-        + 2 * strcmpi(varargin{1},'y')...
-        + 3 * strcmpi(varargin{1},'x')...
-        ) - 1;
-    val = libpointer('int32Ptr', -2^16);
-    callANC350('PositionerGetPosition',handle,axis,val);
-    val = val.Value / 1000;
-    return;
-end
-end
-
-function loadParamFile(handle,path)
-% load file for each axis, preconfigured such that 0==z, 1==y,
-% 2==x
-callANC350('PositionerLoad',handle,0,...
-    [path 'ANPz101res.aps']);
-callANC350('PositionerLoad',handle,1,...
-    [path 'ANPx101res.aps']);
-callANC350('PositionerLoad',handle,2,...
-    [path 'ANPx101res.aps']);
 end
