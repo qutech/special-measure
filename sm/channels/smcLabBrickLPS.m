@@ -9,11 +9,12 @@ DEVICE = 1;
 
 % Open the library if needed.
 if ~libisloaded('VNX_dps64')
-  if ~loadlibrary('VNX_dps64.dll', 'vnx_lps_api.h')
-      error('Unable to load hidapi');
-  end
-  smdata.inst(ic(1)).data.devhandle=[];
-  calllib('VNX_dps64', 'fnLPS_InitDevice',uint32(DEVICE));
+    loadlibrary('VNX_dps64.dll', 'vnx_lps_api.h')
+    if ~libisloaded('VNX_dps64')
+        error('Unable to load VNX_dps64');
+    end
+    smdata.inst(ic(1)).data.devhandle=[];
+    calllib('VNX_dps64', 'fnLPS_InitDevice',uint32(DEVICE));
 end
 
 switch ico(3)
@@ -25,7 +26,7 @@ switch ico(3)
             case 2 %phase angle
                 val = calllib('VNX_dps64', 'fnLPS_GetPhaseAngle',uint32(DEVICE));
         end
-                        
+        
     case 1 %Set
         switch ico(2)
             case 1 %working frequency
@@ -39,4 +40,3 @@ switch ico(3)
     otherwise
         error('Operation not supported!')
 end
-        
