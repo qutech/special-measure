@@ -13,7 +13,6 @@ if ~libisloaded('VNX_dps64')
     if ~libisloaded('VNX_dps64')
         error('Unable to load VNX_dps64');
     end
-    smdata.inst(ic(1)).data.devhandle=[];
     calllib('VNX_dps64', 'fnLPS_InitDevice',uint32(DEVICE));
 end
 
@@ -22,9 +21,11 @@ switch ico(3)
         switch ico(2)
             case 1 %working frequency
                 % returns in units of 100 kHz
-                val = 100e3*calllib('VNX_dps64', 'fnLPS_GetWorkingFrequency',uint32(DEVICE));
+                val = calllib('VNX_dps64', 'fnLPS_GetWorkingFrequency',uint32(DEVICE));
+                val = 100e3*double(val);
             case 2 %phase angle
                 val = calllib('VNX_dps64', 'fnLPS_GetPhaseAngle',uint32(DEVICE));
+                val = double(val);
         end
         
     case 1 %Set
@@ -35,7 +36,7 @@ switch ico(3)
                     uint32(DEVICE),int32(val/100e3));
             case 2 %phase angle
                 calllib('VNX_dps64', 'fnLPS_SetPhaseAngle',...
-                    uint32(DEVICE),val);
+                    uint32(DEVICE),int32(val));
         end
     otherwise
         error('Operation not supported!')
