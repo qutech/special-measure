@@ -12,7 +12,7 @@ switch ic(2) % Channel
             case 1 % set
                 fprintf(smdata.inst(ic(1)).data.inst, sprintf(':FREQ %f', val));
             case 0 % get
-                val = query(smdata.inst(ic(1)).data.inst, ':FREQ?');
+                val = sscanf(query(smdata.inst(ic(1)).data.inst, ':FREQ?'),'%f');
             otherwise
                 error('Operation not supported');
         end
@@ -21,7 +21,7 @@ switch ic(2) % Channel
             case 1 % set
                 fprintf(smdata.inst(ic(1)).data.inst, sprintf(':LEV %f', val));
             case 0 % get
-                val = query(smdata.inst(ic(1)).data.inst, ':LEV?');
+                val = sscanf(query(smdata.inst(ic(1)).data.inst, ':LEV?'),'%f');
             otherwise
                 error('Operation not supported');
         end
@@ -31,7 +31,7 @@ switch ic(2) % Channel
                 assert(val==0||val==1);
                 fprintf(smdata.inst(ic(1)).data.inst, sprintf(':OUTP %d', val));
             case 0 % get
-                val = query(smdata.inst(ic(1)).data.inst, ':OUTP?');
+               val = sscanf(query(smdata.inst(ic(1)).data.inst, ':OUTP?'),'%i');						 
             otherwise
                 error('Operation not supported');
         end
