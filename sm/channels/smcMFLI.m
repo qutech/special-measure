@@ -5,6 +5,7 @@ function [val, rate] = smcMFLI(ico, val, rate)
 % 8: buffered Read Out phase
 %10: Buffered Read Out x
 %11: Time constant
+%12: Offset on Vref
 %
 global smdata;
 
@@ -114,6 +115,8 @@ switch ico(3) % mode
                 smdata.inst(ico(1)).data.currsamp(2) =  smdata.inst(ico(1)).data.currsamp(2) + npts;
             case 11
                 val = ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/timeconstant']);
+            case 12
+                val = ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/sigouts/0/offset']);
         end
         
     case 1 % write
@@ -130,6 +133,9 @@ switch ico(3) % mode
             case 11
                 ziDAQ('setDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/timeconstant'],val)
                 val = ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/timeconstant']);
+            case 12
+                ziDAQ('setDouble', ['/' smdata.inst(ico(1)).data.inst.device '/sigouts/0/offset'],val)
+                val = ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/sigouts/0/offset']);
             otherwise
                 error('Operation not supported.');
         end
