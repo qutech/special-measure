@@ -37,12 +37,13 @@ if nargin >=4 && ~isempty(npoints)
     end
 end
 
-for i=1:length(scan.consts)
+
 if isfield(scan, 'consts')
   for i=1:length(scan.consts)
     smset(scan.consts(i).setchan,scan.consts(i).val);
   end
 end
+
 
 if isfield(scan, 'configfn') && ~isempty(scan.configfn)
     scan = scan.configfn.fn(scan, scan.configfn.args{:});
