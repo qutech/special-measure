@@ -82,7 +82,15 @@ switch ico(3) % mode
                 
                 val = sqrt(smdata.inst(ico(1)).data.inst.trigger.last_result.x.^2+...
                     smdata.inst(ico(1)).data.inst.trigger.last_result.y.^2);
-                val=val(1:npts);
+%                 val=val(1:npts);
+
+                val = resample(val, smdata.inst(ico(1)).data.inst.trigger.final_rate, fix(smdata.inst(ico(1)).data.inst.trigger.demod_rate));
+%                 ratio = floor(smdata.inst(ico(1)).data.inst.trigger.demod_rate/smdata.inst(ico(1)).data.inst.trigger.final_rate);
+% 								val = val(1:floor(length(val)/ratio)*ratio);
+% 								val = reshape(val(:), ratio, []);
+% 								val = mean(val, 1).';
+                
+								val = val(1:npts);
                 smdata.inst(ico(1)).data.currsamp(1) =  smdata.inst(ico(1)).data.currsamp(1) + npts;
             case 8 % buff phase
                 npts = smdata.inst(ico(1)).datadim(ico(2), 1);
@@ -159,7 +167,8 @@ switch ico(3) % mode
     case 5 % config
         
         if ~isfield(smdata.inst(ico(1)).data.inst,'trigger')||~logical(smdata.inst(ico(1)).data.inst.trigger.armed)
-            smdata.inst(ico(1)).data.inst.trigger.demod_rate=rate;
+            smdata.inst(ico(1)).data.inst.trigger.demod_rate=107.1e3;
+						smdata.inst(ico(1)).data.inst.trigger.final_rate = rate;
             smdata.inst(ico(1)).data.inst.trigger.trigger_count=1;
             smdata.inst(ico(1)).data.inst.trigger.trigger_delay=0;
             smdata.inst(ico(1)).data.inst.trigger.armed=0;
@@ -177,9 +186,9 @@ switch ico(3) % mode
                 smdata.inst(ico(1)).data.inst.trigger.demod_rate);
             
             % get closeset possible rate back
-            rate=ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/rate'], ...
+            smdata.inst(ico(1)).data.inst.trigger.demod_rate=ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/rate'], ...
                 smdata.inst(ico(1)).data.inst.trigger.demod_rate);
-            smdata.inst(ico(1)).data.inst.trigger.demod_rate=rate;
+%             smdata.inst(ico(1)).data.inst.trigger.demod_rate=rate;
             
             
             smdata.inst(ico(1)).data.inst.trigger.trigger_duration=val/rate;
@@ -243,8 +252,8 @@ switch ico(3) % mode
             ziDAQ('execute',h);  %arm
             smdata.inst(ico(1)).data.inst.trigger.armed=1;
         else
-            rate=ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/rate'], ...
-                smdata.inst(ico(1)).data.inst.trigger.demod_rate);
+%             rate=ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/rate'], ...
+%                 smdata.inst(ico(1)).data.inst.trigger.demod_rate);
         end
         
         %copie from SR830 driver
@@ -263,18 +272,21 @@ end
 function [last_result, checkout]=get_buffered_data(smdata,ico)
 
 if ~smdata.inst(ico(1)).data.inst.trigger.checkout
+	  tic
+		
     res=ziDAQ('read',smdata.inst(ico(1)).data.inst.trigger.handle);
-      
     while ~ziCheckPathInData(res, ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/sample'])
         pause(.1);
         temp=ziDAQ('read',smdata.inst(ico(1)).data.inst.trigger.handle);
         res.(smdata.inst(ico(1)).data.inst.device).demods.sample=...
             temp.(smdata.inst(ico(1)).data.inst.device).demods.sample;
-    end
-    
+		end		
+		
     last_result=...
         res.(smdata.inst(ico(1)).data.inst.device).demods.sample{end};
     checkout=1;
+		
+		toc
 else
     checkout=smdata.inst(ico(1)).data.inst.trigger.checkout;
     last_result=smdata.inst(ico(1)).data.inst.trigger.last_result;
