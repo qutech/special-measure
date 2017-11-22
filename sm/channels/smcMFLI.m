@@ -84,13 +84,17 @@ switch ico(3) % mode
                     smdata.inst(ico(1)).data.inst.trigger.last_result.y.^2);
 %                 val=val(1:npts);
 
-                val = resample(val, smdata.inst(ico(1)).data.inst.trigger.final_rate, fix(smdata.inst(ico(1)).data.inst.trigger.demod_rate));
+                nptsAdd = 2*max(floor(numel(val)/10), 100);
+								nptsAddDownsampled = floor(nptsAdd*smdata.inst(ico(1)).data.inst.trigger.final_rate/smdata.inst(ico(1)).data.inst.trigger.demod_rate);
+								val = horzcat(zeros(1, nptsAdd/2), ones(1, nptsAdd/2)*val(1), val, ones(1, nptsAdd/2)*val(end), zeros(1, nptsAdd/2));
+                val = resample(val, fix(smdata.inst(ico(1)).data.inst.trigger.final_rate), fix(smdata.inst(ico(1)).data.inst.trigger.demod_rate));
+								val = val(nptsAddDownsampled+1:nptsAddDownsampled+npts);
 %                 ratio = floor(smdata.inst(ico(1)).data.inst.trigger.demod_rate/smdata.inst(ico(1)).data.inst.trigger.final_rate);
 % 								val = val(1:floor(length(val)/ratio)*ratio);
 % 								val = reshape(val(:), ratio, []);
 % 								val = mean(val, 1).';
                 
-								val = val(1:npts);
+								% val = val(1:npts);
                 smdata.inst(ico(1)).data.currsamp(1) =  smdata.inst(ico(1)).data.currsamp(1) + npts;
             case 8 % buff phase
                 npts = smdata.inst(ico(1)).datadim(ico(2), 1);
@@ -167,7 +171,7 @@ switch ico(3) % mode
     case 5 % config
         
         if ~isfield(smdata.inst(ico(1)).data.inst,'trigger')||~logical(smdata.inst(ico(1)).data.inst.trigger.armed)
-            smdata.inst(ico(1)).data.inst.trigger.demod_rate=107.1e3;
+            smdata.inst(ico(1)).data.inst.trigger.demod_rate= 26.79e3; % 53571.4296875;
 						smdata.inst(ico(1)).data.inst.trigger.final_rate = rate;
             smdata.inst(ico(1)).data.inst.trigger.trigger_count=1;
             smdata.inst(ico(1)).data.inst.trigger.trigger_delay=0;
@@ -247,7 +251,14 @@ switch ico(3) % mode
             ziDAQ('set', h, 'trigger/0/holdoff/time', 0.)
             ziDAQ('set', h, 'trigger/0/holdoff/count', 0)
             
-            ziDAQ('subscribe',h,['/' smdata.inst(ico(1)).data.inst.device '/demods/0/sample']);
+						try
+							ziDAQ('subscribe',h,['/' smdata.inst(ico(1)).data.inst.device '/demods/0/sample']);
+						catch err
+              warning(err.getReport());
+							util.keyboard_control();
+							pause(2);
+							ziDAQ('subscribe',h,['/' smdata.inst(ico(1)).data.inst.device '/demods/0/sample']);
+						end
             
             ziDAQ('execute',h);  %arm
             smdata.inst(ico(1)).data.inst.trigger.armed=1;
