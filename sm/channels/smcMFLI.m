@@ -180,6 +180,7 @@ switch ico(3) % mode
             %remove old trigger
             if isfield(smdata.inst(ico(1)).data.inst.trigger,'handle')
                 if ~isempty(smdata.inst(ico(1)).data.inst.trigger.handle)
+									  ziDAQ('finish',smdata.inst(ico(1)).data.inst.trigger.handle); %new
                     ziDAQ('clear',smdata.inst(ico(1)).data.inst.trigger.handle);
                     smdata.inst(ico(1)).data.inst.trigger.handle=[];
                 end
@@ -210,6 +211,7 @@ switch ico(3) % mode
             
             ziDAQ('set', h, 'trigger/device', smdata.inst(ico(1)).data.inst.device);
             ziDAQ('set', h, 'trigger/endless', 1);
+						ziDAQ('set',h,'trigger/historylength',10) % 100000
             ziDAQ('set', h, 'trigger/0/count', ...
                 smdata.inst(ico(1)).data.inst.trigger.trigger_count);
             %   type:
