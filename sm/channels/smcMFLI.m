@@ -171,7 +171,7 @@ switch ico(3) % mode
     case 5 % config
         
         if ~isfield(smdata.inst(ico(1)).data.inst,'trigger')||~logical(smdata.inst(ico(1)).data.inst.trigger.armed)
-            smdata.inst(ico(1)).data.inst.trigger.demod_rate= 26.79e3; % 53571.4296875;
+            smdata.inst(ico(1)).data.inst.trigger.demod_rate= 13.39e3; % 53571.4296875;
 						smdata.inst(ico(1)).data.inst.trigger.final_rate = rate;
             smdata.inst(ico(1)).data.inst.trigger.trigger_count=1;
             smdata.inst(ico(1)).data.inst.trigger.trigger_delay=0;
@@ -255,15 +255,16 @@ switch ico(3) % mode
             
 						try
 							ziDAQ('subscribe',h,['/' smdata.inst(ico(1)).data.inst.device '/demods/0/sample']);
+							ziDAQ('execute',h);  %arm
+              smdata.inst(ico(1)).data.inst.trigger.armed=1;
 						catch err
               warning(err.getReport());
-							util.keyboard_control();
-							pause(2);
-							ziDAQ('subscribe',h,['/' smdata.inst(ico(1)).data.inst.device '/demods/0/sample']);
-						end
+						  fprintf('\nWill now try to configure the instrument again.\nIf this error shows up again immediately several\ntimes, the driver is stuck in an infinite loop.\n\nThat''s why I will now wait 5s during which you\ncan press CTRL+C to abort.\n');
+							pause(5);
+							fprintf('\n5s elapsed. Configuring the instrument now.\nDo NOT press CTRL+C now.\n');
+							[val, rate] = smcMFLI(ico, val, rate);
+						end         
             
-            ziDAQ('execute',h);  %arm
-            smdata.inst(ico(1)).data.inst.trigger.armed=1;
         else
 %             rate=ziDAQ('getDouble', ['/' smdata.inst(ico(1)).data.inst.device '/demods/0/rate'], ...
 %                 smdata.inst(ico(1)).data.inst.trigger.demod_rate);
