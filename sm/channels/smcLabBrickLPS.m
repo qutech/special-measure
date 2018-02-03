@@ -13,6 +13,7 @@ if ~libisloaded('VNX_dps64')
     if ~libisloaded('VNX_dps64')
         error('Unable to load VNX_dps64');
     end
+    calllib('VNX_dps64', 'fnLPS_GetNumDevices');
     calllib('VNX_dps64', 'fnLPS_InitDevice',uint32(DEVICE));
 end
 
