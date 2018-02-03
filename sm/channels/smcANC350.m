@@ -8,7 +8,7 @@ if ~libisloaded('hvpositionerv2')
         libname='hvpositionerv2';
     end
     loadlibrary([libname '.dll'],[libname '.h'],'alias','hvpositionerv2');
-
+    
     posInfo = libstruct('PositionerInfo');
     numDevices = calllib('hvpositionerv2','PositionerCheck',posInfo);
     if numDevices < 1
@@ -41,6 +41,10 @@ switch ico(3)
                 callANC350('PositionerGetPosition',...
                     smdata.inst(ico(1)).data.devHandle,ico(2)-1,val);
                 val = double(val.Value / 1000);
+           
+            case 4
+                val = smdata.inst(ico(1)).data.staticAmplitude/1000;
+                
         end
         
     case 1
@@ -49,6 +53,12 @@ switch ico(3)
                 pos = int32(val*1000);
                 callANC350('PositionerMoveAbsolute',...
                     smdata.inst(ico(1)).data.devHandle,ico(2)-1,pos);
+                
+            case 4
+                callANC350('PositionerStaticAmplitude',...
+                    smdata.inst(ico(1)).data.devHandle,...
+                    int32(val*1000));
+                smdata.inst(ico(1)).data.staticAmplitude = int32(val);
                 
             otherwise
                 error('Operation not supported!')
